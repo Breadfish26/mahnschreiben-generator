@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mahnschreiben Generator</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --ink:       #1a1a18;
+    --ink-soft:  #4a4a46;
+    --ink-faint: #8a8a84;
+    --paper:     #f7f5f0;
+    --paper-2:   #edeae2;
+    --gold:      #b8973a;
+    --gold-light:#d4b05a;
+    --red:       #c0392b;
+    --white:     #ffffff;
+    --border:    rgba(26,26,24,0.12);
+    --radius:    6px;
+    --shadow:    0 2px 24px rgba(26,26,24,0.08);
+  }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--paper);
+    color: var(--ink);
+    min-height: 100vh;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto 1fr;
+  }
+
+  /* ── Header ── */
+  header {
+    grid-column: 1 / -1;
+    background: var(--ink);
+    color: var(--white);
+    padding: 20px 48px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 2px solid var(--gold);
+  }
+
+  .logo {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+  }
+
+  .logo-mark {
+    font-family: 'Playfair Display', serif;
+    font-size: 22px;
+    color: var(--gold);
+    letter-spacing: 0.02em;
+  }
+
+  .logo-sub {
+    font-size: 11px;
+    font-weight: 300;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.45);
+  }
+
+  .header-badge {
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--gold);
+    border: 1px solid rgba(184,151,58,0.4);
+    padding: 5px 12px;
+    border-radius: 2px;
+  }
+
+  /* ── Left Panel: Form ── */
+  .panel-form {
+    padding: 40px 48px;
+    overflow-y: auto;
+    border-right: 1px solid var(--border);
+    background: var(--white);
+  }
+
+  .panel-output {
+    padding: 40px 48px;
+    overflow-y: auto;
+    background: var(--paper);
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── Section headings ── */
+  .section-label {
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 20px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--paper-2);
+  }
+
+  .form-group {
+    margin-bottom: 20px;
+  }
+
+  label {
+    display: block;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin-bottom: 6px;
+  }
+
+  input[type="text"],
+  input[type="date"] {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    color: var(--ink);
+    background: var(--paper);
+    transition: border-color 0.2s, box-shadow 0.2s;
+    outline: none;
+  }
+
+  input[type="text"]:focus,
+  input[type="date"]:focus {
+    border-color: var(--gold);
+    box-shadow: 0 0 0 3px rgba(184,151,58,0.1);
+    background: var(--white);
+  }
+
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  /* ── Toggle switches ── */
+  .toggle-group {
+    margin-bottom: 14px;
+  }
+
+  .toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    background: var(--paper);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: background 0.15s;
+    margin-bottom: 8px;
+  }
+
+  .toggle-row:hover { background: var(--paper-2); }
+
+  .toggle-label {
+    font-size: 13px;
+    color: var(--ink-soft);
+    font-weight: 400;
+  }
+
+  .toggle-switch {
+    position: relative;
+    width: 40px;
+    height: 22px;
+    flex-shrink: 0;
+  }
+
+  .toggle-switch input { display: none; }
+
+  .toggle-track {
+    position: absolute;
+    inset: 0;
+    background: var(--paper-2);
+    border-radius: 11px;
+    border: 1px solid var(--border);
+    transition: background 0.2s;
+    cursor: pointer;
+  }
+
+  .toggle-thumb {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 14px;
+    height: 14px;
+    background: var(--white);
+    border-radius: 50%;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+    transition: transform 0.2s;
+  }
+
+  .toggle-switch input:checked + .toggle-track { background: var(--gold); border-color: var(--gold); }
+  .toggle-switch input:checked ~ .toggle-thumb { transform: translateX(18px); }
+
+  /* Deadline date conditional */
+  .conditional-field {
+    overflow: hidden;
+    max-height: 0;
+    opacity: 0;
+    transition: max-height 0.3s ease, opacity 0.3s ease, margin 0.3s ease;
+    margin-top: 0;
+  }
+  .conditional-field.visible {
+    max-height: 80px;
+    opacity: 1;
+    margin-top: 12px;
+  }
+
+  /* ── Submit button ── */
+  .btn-generate {
+    width: 100%;
+    padding: 14px;
+    background: var(--ink);
+    color: var(--white);
+    border: none;
+    border-radius: var(--radius);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+    margin-top: 28px;
+    transition: background 0.2s, transform 0.1s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .btn-generate:hover { background: #2e2e2a; }
+  .btn-generate:active { transform: scale(0.99); }
+  .btn-generate:disabled { background: var(--ink-faint); cursor: not-allowed; }
+
+  .btn-generate .btn-text { transition: opacity 0.2s; }
+  .btn-generate .btn-loading {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+
+  .btn-generate.loading .btn-text { opacity: 0; }
+  .btn-generate.loading .btn-loading { opacity: 1; }
+
+  .spinner {
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── Output panel ── */
+  .output-placeholder {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    color: var(--ink-faint);
+    gap: 12px;
+  }
+
+  .output-placeholder-icon {
+    width: 48px;
+    height: 48px;
+    border: 1.5px solid var(--paper-2);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    margin-bottom: 4px;
+  }
+
+  .output-placeholder p {
+    font-size: 13px;
+    line-height: 1.6;
+    max-width: 220px;
+  }
+
+  .output-result { display: none; flex-direction: column; height: 100%; }
+  .output-result.visible { display: flex; }
+
+  .output-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+  }
+
+  .output-meta-label {
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--gold);
+  }
+
+  .output-actions {
+    display: flex;
+    gap: 8px;
+  }
+
+  .btn-action {
+    padding: 7px 14px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .btn-copy {
+    background: transparent;
+    color: var(--ink-soft);
+    border: 1px solid var(--border);
+  }
+  .btn-copy:hover { background: var(--paper-2); }
+  .btn-copy.copied { color: var(--gold); border-color: var(--gold); }
+
+  .btn-print {
+    background: var(--ink);
+    color: var(--white);
+    border: 1px solid var(--ink);
+  }
+  .btn-print:hover { background: #2e2e2a; }
+
+  .draft-box {
+    flex: 1;
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 32px 36px;
+    font-family: 'Playfair Display', serif;
+    font-size: 14px;
+    line-height: 1.9;
+    color: var(--ink);
+    white-space: pre-wrap;
+    box-shadow: var(--shadow);
+    overflow-y: auto;
+    animation: fadeIn 0.4s ease;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .blocks-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: var(--ink-faint);
+    margin-top: 14px;
+  }
+
+  .blocks-badge span {
+    background: var(--paper-2);
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-weight: 500;
+    color: var(--gold);
+  }
+
+  /* ── Error toast ── */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: var(--red);
+    color: white;
+    padding: 12px 24px;
+    border-radius: var(--radius);
+    font-size: 13px;
+    font-weight: 500;
+    transition: transform 0.3s ease;
+    z-index: 999;
+    white-space: nowrap;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  /* ── Section dividers ── */
+  .form-section { margin-bottom: 32px; }
+
+  /* ── Webhook config ── */
+  .webhook-config {
+    margin-bottom: 28px;
+    padding: 14px 16px;
+    background: rgba(184,151,58,0.06);
+    border: 1px solid rgba(184,151,58,0.2);
+    border-radius: var(--radius);
+  }
+
+  .webhook-config label {
+    color: var(--gold);
+    margin-bottom: 6px;
+  }
+
+  .webhook-config input {
+    background: var(--white);
+    font-size: 12px;
+    font-family: monospace;
+  }
+
+  @media print {
+    body { display: block; }
+    header, .panel-form { display: none; }
+    .panel-output { padding: 0; }
+    .output-actions, .blocks-badge, .section-label { display: none; }
+    .draft-box { border: none; box-shadow: none; padding: 0; font-size: 12pt; }
+  }
+
+  @media (max-width: 900px) {
+    body { grid-template-columns: 1fr; }
+    .panel-form { border-right: none; border-bottom: 1px solid var(--border); }
+    header { padding: 16px 24px; }
+    .panel-form, .panel-output { padding: 28px 24px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <span class="logo-mark">Lex</span>
+    <span class="logo-sub">Dokumenten-Generator</span>
+  </div>
+  <div class="header-badge">Mahnschreiben · v1</div>
+</header>
+
+<!-- LEFT: Form -->
+<div class="panel-form">
+
+  <div class="webhook-config">
+    <label>n8n Webhook URL</label>
+    <input type="text" id="webhookUrl"
+      value="http://n8n-eccsgw8s40o0cgoosg84g888.34.59.132.81.sslip.io/webhook/mahnschreiben"
+      placeholder="https://your-n8n.com/webhook/mahnschreiben">
+  </div>
+
+  <div class="form-section">
+    <div class="section-label">Parteien</div>
+    <div class="form-group">
+      <label>Gläubiger (Ihr Mandant)</label>
+      <input type="text" id="creditor_name" placeholder="Musterfirma GmbH" value="Musterfirma GmbH">
+    </div>
+    <div class="form-group">
+      <label>Schuldner</label>
+      <input type="text" id="debtor_name" placeholder="Max Mustermann" value="Max Mustermann">
+    </div>
+  </div>
+
+  <div class="form-section">
+    <div class="section-label">Forderung</div>
+    <div class="form-group">
+      <label>Betrag</label>
+      <input type="text" id="amount" placeholder="2.400 €" value="2400 €">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Rechnungsdatum</label>
+        <input type="text" id="invoice_date" placeholder="12.02.2025" value="12.02.2025">
+      </div>
+      <div class="form-group">
+        <label>Fälligkeitsdatum</label>
+        <input type="text" id="due_date" placeholder="26.02.2025" value="26.02.2025">
+      </div>
+    </div>
+  </div>
+
+  <div class="form-section">
+    <div class="section-label">Optionen</div>
+
+    <div class="toggle-group">
+
+      <label class="toggle-row" for="prior_reminder_sent">
+        <span class="toggle-label">Zahlungserinnerung bereits versandt</span>
+        <div class="toggle-switch">
+          <input type="checkbox" id="prior_reminder_sent" checked>
+          <div class="toggle-track"></div>
+          <div class="toggle-thumb"></div>
+        </div>
+      </label>
+
+      <label class="toggle-row" for="add_final_deadline" id="deadline-toggle-row">
+        <span class="toggle-label">Letzte Zahlungsfrist setzen</span>
+        <div class="toggle-switch">
+          <input type="checkbox" id="add_final_deadline" checked onchange="toggleDeadline(this)">
+          <div class="toggle-track"></div>
+          <div class="toggle-thumb"></div>
+        </div>
+      </label>
+
+      <div class="conditional-field visible" id="deadline-field">
+        <div class="form-group">
+          <label>Fristdatum</label>
+          <input type="text" id="deadline_date" placeholder="15.03.2025" value="15.03.2025">
+        </div>
+      </div>
+
+      <label class="toggle-row" for="mention_default_interest">
+        <span class="toggle-label">Verzugszinsen erwähnen</span>
+        <div class="toggle-switch">
+          <input type="checkbox" id="mention_default_interest">
+          <div class="toggle-track"></div>
+          <div class="toggle-thumb"></div>
+        </div>
+      </label>
+
+      <label class="toggle-row" for="mention_legal_action">
+        <span class="toggle-label">Rechtliche Schritte androhen</span>
+        <div class="toggle-switch">
+          <input type="checkbox" id="mention_legal_action" checked>
+          <div class="toggle-track"></div>
+          <div class="toggle-thumb"></div>
+        </div>
+      </label>
+
+    </div>
+  </div>
+
+  <button class="btn-generate" id="generateBtn" onclick="generateLetter()">
+    <span class="btn-text">Mahnschreiben generieren</span>
+    <span class="btn-loading"><div class="spinner"></div></span>
+  </button>
+
+</div>
+
+<!-- RIGHT: Output -->
+<div class="panel-output">
+  <div class="section-label">Entwurf</div>
+
+  <div class="output-placeholder" id="placeholder">
+    <div class="output-placeholder-icon">§</div>
+    <p>Füllen Sie das Formular aus und klicken Sie auf „Generieren".</p>
+  </div>
+
+  <div class="output-result" id="result">
+    <div class="output-meta">
+      <span class="output-meta-label">Fertig</span>
+      <div class="output-actions">
+        <button class="btn-action btn-copy" onclick="copyDraft()">Kopieren</button>
+        <button class="btn-action btn-print" onclick="window.print()">Drucken</button>
+      </div>
+    </div>
+    <div class="draft-box" id="draftBox"></div>
+    <div class="blocks-badge">
+      Textbausteine verwendet: <span id="blocksCount">—</span>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  function toggleDeadline(cb) {
+    const field = document.getElementById('deadline-field');
+    field.classList.toggle('visible', cb.checked);
+  }
+
+  async function generateLetter() {
+    const btn = document.getElementById('generateBtn');
+    const webhookUrl = document.getElementById('webhookUrl').value.trim();
+
+    if (!webhookUrl) { showToast('Bitte Webhook-URL eingeben.'); return; }
+
+    const payload = {
+      debtor_name:              document.getElementById('debtor_name').value.trim(),
+      creditor_name:            document.getElementById('creditor_name').value.trim(),
+      amount:                   document.getElementById('amount').value.trim(),
+      invoice_date:             document.getElementById('invoice_date').value.trim(),
+      due_date:                 document.getElementById('due_date').value.trim(),
+      prior_reminder_sent:      document.getElementById('prior_reminder_sent').checked,
+      add_final_deadline:       document.getElementById('add_final_deadline').checked,
+      deadline_date:            document.getElementById('deadline_date').value.trim(),
+      mention_default_interest: document.getElementById('mention_default_interest').checked,
+      mention_legal_action:     document.getElementById('mention_legal_action').checked,
+    };
+
+    if (!payload.debtor_name || !payload.creditor_name || !payload.amount) {
+      showToast('Bitte alle Pflichtfelder ausfüllen.');
+      return;
+    }
+
+    btn.disabled = true;
+    btn.classList.add('loading');
+
+    try {
+      const res = await fetch(webhookUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+      const data = await res.json();
+      const draft = data.draft || data.data?.[0]?.draft || JSON.stringify(data, null, 2);
+      const blocks = data.blocks_included || data.data?.[0]?.blocks_included || '—';
+
+      document.getElementById('draftBox').textContent = draft;
+      document.getElementById('blocksCount').textContent = blocks;
+      document.getElementById('placeholder').style.display = 'none';
+      document.getElementById('result').classList.add('visible');
+
+    } catch (err) {
+      showToast('Fehler: ' + err.message + '. Ist der Webhook aktiv?');
+    } finally {
+      btn.disabled = false;
+      btn.classList.remove('loading');
+    }
+  }
+
+  function copyDraft() {
+    const text = document.getElementById('draftBox').textContent;
+    navigator.clipboard.writeText(text).then(() => {
+      const btn = document.querySelector('.btn-copy');
+      btn.textContent = 'Kopiert ✓';
+      btn.classList.add('copied');
+      setTimeout(() => {
+        btn.textContent = 'Kopieren';
+        btn.classList.remove('copied');
+      }, 2000);
+    });
+  }
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 3500);
+  }
+</script>
+</body>
+</html>
