@@ -501,6 +501,44 @@
     color: var(--ink-faint);
     font-weight: 400;
   }
+  
+  /* ── Mapping UI ── */
+  .mapping-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    background: var(--white);
+    padding: 24px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+  }
+  .mapping-item {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .mapping-item label {
+    font-size: 10px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--ink-soft);
+  }
+  .mapping-select {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-family: inherit;
+    font-size: 12px;
+    background: var(--paper);
+    outline: none;
+    cursor: pointer;
+  }
+  .mapping-select:focus {
+    border-color: var(--gold);
+    background: var(--white);
+  }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 </head>
@@ -540,6 +578,14 @@
       Pflichtspalten: debtor_name, creditor_name, amount, invoice_date, due_date<br>
       Optionale Spalten: deadline_date, prior_reminder_sent, add_final_deadline, mention_default_interest, mention_legal_action
     </p>
+
+    <div id="mapping-section" style="display: none; margin-top: 24px;">
+      <div class="section-label">Felder zuordnen</div>
+      <p style="font-size: 11px; color: var(--ink-faint); margin-bottom: 16px;">Bitte überprüfen Sie die automatische Zuordnung der CSV-Spalten.</p>
+      <div class="mapping-grid" id="mapping-grid">
+        <!-- Generated via JS -->
+      </div>
+    </div>
   </div>
 
   <div id="single-mode">
@@ -658,6 +704,21 @@
 <script>
   let currentMode = 'single';
   let allDraftsText = '';
+  let uploadedCSVData = null;
+  let uploadedCSVHeaders = [];
+
+  const EXPECTED_FIELDS = [
+    { key: 'creditor_name', label: 'Gläubiger (Pflicht)' },
+    { key: 'debtor_name', label: 'Schuldner (Pflicht)' },
+    { key: 'amount', label: 'Betrag (Pflicht)' },
+    { key: 'invoice_date', label: 'Rechnungsdatum (Pflicht)' },
+    { key: 'due_date', label: 'Fälligkeitsdatum (Pflicht)' },
+    { key: 'deadline_date', label: 'Fristdatum' },
+    { key: 'prior_reminder_sent', label: 'Erinnerung gesendet' },
+    { key: 'add_final_deadline', label: 'Letzte Frist setzen' },
+    { key: 'mention_default_interest', label: 'Verzugszinsen erwähnen' },
+    { key: 'mention_legal_action', label: 'Rechtliche Schritte androhen' }
+  ];
 
   function switchMode(mode) {
     currentMode = mode;
@@ -698,35 +759,63 @@
     return String(str).toLowerCase().replace(/[^a-z0-9äöüß]/g, '');
   }
 
-  function autoMapRow(rawRow) {
-    const normalizedRawRow = {};
-    for (const key in rawRow) {
-      normalizedRawRow[normalize(key)] = rawRow[key];
-    }
+  function handleFileSelect(files) {
+    if (!files || !files.length) return;
+    const file = files[0];
+    document.getElementById('drop-text').innerHTML = `<strong>${file.name}</strong><br><span>Datei eingelesen. Bitte Spalten zuordnen.</span>`;
+    
+    // Read and parse
+    const reader = new FileReader();
+    reader.onload = e => {
+      const text = e.target.result;
+      const parsed = Papa.parse(text, { header: true, skipEmptyLines: true });
+      if (parsed.errors.length) {
+        showToast('Fehler beim Parsen der CSV (Zeile ' + parsed.errors[0].row + ').');
+        return;
+      }
+      uploadedCSVData = parsed.data;
+      uploadedCSVHeaders = parsed.meta.fields;
+      renderMappingUI();
+    };
+    reader.onerror = () => showToast('Fehler beim Lesen der Datei.');
+    reader.readAsText(file);
+  }
 
-    function findMatch(field) {
-      const aliases = COLUMN_ALIASES[field];
-      for (const alias of aliases) {
-        const normAlias = normalize(alias);
-        if (normalizedRawRow[normAlias] !== undefined) {
-          return normalizedRawRow[normAlias];
+  function renderMappingUI() {
+    const grid = document.getElementById('mapping-grid');
+    grid.innerHTML = '';
+    
+    EXPECTED_FIELDS.forEach(field => {
+      const aliases = COLUMN_ALIASES[field.key] || [];
+      let bestMatch = '';
+      
+      for (const header of uploadedCSVHeaders) {
+        const normHeader = normalize(header);
+        if (aliases.map(normalize).includes(normHeader)) {
+          bestMatch = header;
+          break;
         }
       }
-      return undefined;
-    }
 
-    return {
-      debtor_name: findMatch('debtor_name') || '',
-      creditor_name: findMatch('creditor_name') || '',
-      amount: findMatch('amount') || '',
-      invoice_date: findMatch('invoice_date') || '',
-      due_date: findMatch('due_date') || '',
-      prior_reminder_sent: parseBool(findMatch('prior_reminder_sent')),
-      add_final_deadline: parseBool(findMatch('add_final_deadline')),
-      deadline_date: findMatch('deadline_date') || '',
-      mention_default_interest: parseBool(findMatch('mention_default_interest')),
-      mention_legal_action: parseBool(findMatch('mention_legal_action'))
-    };
+      const div = document.createElement('div');
+      div.className = 'mapping-item';
+      
+      let optionsHtml = `<option value="">-- Nicht zugeordnet --</option>`;
+      uploadedCSVHeaders.forEach(h => {
+        const selected = (h === bestMatch) ? 'selected' : '';
+        optionsHtml += `<option value="${h}" ${selected}>${h}</option>`;
+      });
+
+      div.innerHTML = `
+        <label>${field.label}</label>
+        <select class="mapping-select" data-field="${field.key}">
+          ${optionsHtml}
+        </select>
+      `;
+      grid.appendChild(div);
+    });
+
+    document.getElementById('mapping-section').style.display = 'block';
   }
 
   async function generateLetter() {
@@ -757,33 +846,33 @@
       }
       payloadArray.push(payload);
     } else {
-      const fileInput = document.getElementById('csvFile');
-      if (!fileInput.files.length) {
+      if (!uploadedCSVData || !uploadedCSVData.length) {
         showToast('Bitte eine CSV Datei auswählen.');
         return;
       }
 
-      try {
-        const file = fileInput.files[0];
-        const text = await new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = e => resolve(e.target.result);
-          reader.onerror = reject;
-          reader.readAsText(file);
-        });
+      // Collect mapped fields
+      const mapping = {};
+      document.querySelectorAll('.mapping-select').forEach(select => {
+        mapping[select.getAttribute('data-field')] = select.value;
+      });
 
-        const parsed = Papa.parse(text, { header: true, skipEmptyLines: true });
-        if (parsed.errors.length) {
-          showToast('Fehler beim Parsen der CSV (Zeile ' + parsed.errors[0].row + ').');
-          return;
+      payloadArray = uploadedCSVData.map(row => {
+        const mappedRow = {};
+        for (const targetField in mapping) {
+          const csvHeader = mapping[targetField];
+          if (csvHeader && row[csvHeader] !== undefined) {
+            if (['prior_reminder_sent', 'add_final_deadline', 'mention_default_interest', 'mention_legal_action'].includes(targetField)) {
+              mappedRow[targetField] = parseBool(row[csvHeader]);
+            } else {
+              mappedRow[targetField] = row[csvHeader];
+            }
+          } else {
+            mappedRow[targetField] = '';
+          }
         }
-        
-        payloadArray = parsed.data.map(row => autoMapRow(row));
-
-      } catch (err) {
-        showToast('Fehler beim Lesen der Datei.');
-        return;
-      }
+        return mappedRow;
+      });
     }
 
     btn.disabled = true;
@@ -858,6 +947,26 @@
     t.classList.add('show');
     setTimeout(() => t.classList.remove('show'), 3500);
   }
+
+  // Setup drag & drop
+  document.addEventListener('DOMContentLoaded', () => {
+    const dropZone = document.getElementById('drop-zone');
+    dropZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropZone.classList.add('dragover');
+    });
+    dropZone.addEventListener('dragleave', () => {
+      dropZone.classList.remove('dragover');
+    });
+    dropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropZone.classList.remove('dragover');
+      if (e.dataTransfer.files.length) {
+        document.getElementById('csvFile').files = e.dataTransfer.files;
+        handleFileSelect(e.dataTransfer.files);
+      }
+    });
+  });
 </script>
 </body>
 </html>
