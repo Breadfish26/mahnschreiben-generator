@@ -681,16 +681,16 @@
     return false;
   }
   const COLUMN_ALIASES = {
-    debtor_name: ['debtor_name', 'schuldner', 'kunde', 'name', 'debtor', 'empfänger', 'firmenname'],
-    creditor_name: ['creditor_name', 'gläubiger', 'creditor', 'mandant', 'auftraggeber', 'ihr mandant'],
-    amount: ['amount', 'betrag', 'summe', 'rechnungssumme', 'offener betrag', 'wert', 'forderung'],
-    invoice_date: ['invoice_date', 'rechnungsdatum', 'datum', 'invoice date', 'belegdatum'],
-    due_date: ['due_date', 'fälligkeitsdatum', 'fällig am', 'due date', 'fällig'],
-    deadline_date: ['deadline_date', 'fristdatum', 'frist', 'letzte frist', 'deadline'],
-    prior_reminder_sent: ['prior_reminder_sent', 'erinnerung gesendet', 'mahnung verschickt', 'reminder sent'],
-    add_final_deadline: ['add_final_deadline', 'letzte frist setzen', 'final deadline'],
+    debtor_name: ['debtor_name', 'schuldner', 'kunde', 'name', 'debtor', 'empfänger', 'firmenname', 'mandant'],
+    creditor_name: ['creditor_name', 'gläubiger', 'glaeubiger', 'creditor', 'auftraggeber', 'ihr mandant', 'mandant'],
+    amount: ['amount', 'betrag', 'summe', 'rechnungssumme', 'offener betrag', 'wert', 'forderung', 'forderung_eur', 'forderungeur'],
+    invoice_date: ['invoice_date', 'rechnungsdatum', 'datum', 'invoice date', 'belegdatum', 'rechnung_vom', 'rechnungvom'],
+    due_date: ['due_date', 'fälligkeitsdatum', 'faelligkeitsdatum', 'fällig am', 'faellig_bis', 'faelligbis', 'due date', 'fällig'],
+    deadline_date: ['deadline_date', 'fristdatum', 'frist', 'letzte frist', 'deadline', 'nachfrist_bis', 'nachfristbis'],
+    prior_reminder_sent: ['prior_reminder_sent', 'erinnerung gesendet', 'mahnung verschickt', 'reminder sent', 'vorherige_erinn', 'vorherigeerinn'],
+    add_final_deadline: ['add_final_deadline', 'letzte frist setzen', 'final deadline', 'nachfrist_bis', 'nachfristbis'],
     mention_default_interest: ['mention_default_interest', 'verzugszinsen', 'zinsen', 'default interest'],
-    mention_legal_action: ['mention_legal_action', 'rechtliche schritte', 'klageandrohung', 'legal action']
+    mention_legal_action: ['mention_legal_action', 'rechtliche schritte', 'klageandrohung', 'legal action', 'rechtliche_schritte_erwachnen']
   };
 
   function normalize(str) {
