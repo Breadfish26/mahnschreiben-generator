@@ -8,26 +8,24 @@ To allow clients to upload CSVs using different internal header names (e.g., "Ku
 ## Step-by-Step Plan
 
 ### 1. Define Alias Mappings
-We will create a Javascript dictionary containing our required API fields and an extensive list of common aliases/synonyms for each field in both German and English.
+[x] We will create a Javascript dictionary containing our required API fields and an extensive list of common aliases/synonyms for each field in both German and English.
 
 *Example Mapping:*
 ```javascript
 const COLUMN_ALIASES = {
   debtor_name: ['schuldner', 'kunde', 'name', 'debtor', 'empfänger', 'firmenname'],
   creditor_name: ['gläubiger', 'creditor', 'mandant', 'auftraggeber'],
-  amount: ['betrag', 'summe', 'amount', 'rechnungssumme', 'offener betrag', 'wert'],
-  invoice_date: ['rechnungsdatum', 'datum', 'invoice date', 'belegdatum'],
   // ... mappings for all optional fields ...
 };
 ```
 
 ### 2. Implement Header Normalization (Sanitization)
-CSV headers can be messy. Before making any logic comparisons, we will implement a normalization function.
+[x] CSV headers can be messy. Before making any logic comparisons, we will implement a normalization function.
 - Converts all incoming header strings to lowercase.
-- Strips out excess whitespace and special characters (e.g., changing "Rechnungs-Datum " into "rechnungsdatum").
+- Strips out excess whitespace and special characters.
 
 ### 3. Write the Mapping Engine Logic
-Inside `index.html`, we will write a new function called `autoMapRow(rawRow)`.
+[x] Inside `index.html`, we will write a new function called `autoMapRow(rawRow)`.
 Here is the logical flow of the function:
 1. Look at a target field (e.g., `debtor_name`).
 2. Search through the `rawRow` normalized headers.
@@ -36,7 +34,7 @@ Here is the logical flow of the function:
 5. Return a perfectly structured object that the API expects.
 
 ### 4. Integration into the existing `generateLetter()` workflow
-We will replace the strict Javascript `.map(...)` code we wrote previously. 
+[x] We will replace the strict Javascript `.map(...)` code we wrote previously. 
 
 **Currently:**
 ```javascript

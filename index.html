@@ -464,6 +464,43 @@
     font-family: 'Playfair Display', serif; font-size: 14px; line-height: 1.9;
     white-space: pre-wrap; box-shadow: var(--shadow);
   }
+
+  /* ── Drag & Drop ── */
+  .drop-zone {
+    border: 2px dashed rgba(184,151,58,0.5);
+    border-radius: var(--radius);
+    padding: 32px;
+    text-align: center;
+    background: rgba(184,151,58,0.03);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-top: 12px;
+  }
+  .drop-zone:hover {
+    background: rgba(184,151,58,0.06);
+    border-color: var(--gold);
+  }
+  .drop-zone.dragover {
+    background: rgba(184,151,58,0.1);
+    border-color: var(--gold);
+    transform: scale(1.01);
+  }
+  .drop-icon {
+    font-size: 32px;
+    margin-bottom: 12px;
+    opacity: 0.8;
+  }
+  .drop-text {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--ink);
+    line-height: 1.6;
+  }
+  .drop-text span {
+    font-size: 11px;
+    color: var(--ink-faint);
+    font-weight: 400;
+  }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 </head>
@@ -494,8 +531,12 @@
 
   <div id="batch-mode" style="display: none; margin-bottom: 32px;">
     <div class="section-label">CSV Datei Hochladen</div>
-    <input type="file" id="csvFile" accept=".csv" />
-    <p style="font-size: 11px; color: var(--ink-faint); margin-top: 8px; line-height: 1.5;">
+    <div class="drop-zone" id="drop-zone" onclick="document.getElementById('csvFile').click()">
+      <div class="drop-icon">📄</div>
+      <div class="drop-text" id="drop-text">CSV Datei per Drag & Drop hier ablegen<br><span>oder klicken um eine Datei auszuwählen</span></div>
+      <input type="file" id="csvFile" accept=".csv" style="display: none;" onchange="handleFileSelect(this.files)" />
+    </div>
+    <p style="font-size: 11px; color: var(--ink-faint); margin-top: 12px; line-height: 1.5;">
       Pflichtspalten: debtor_name, creditor_name, amount, invoice_date, due_date<br>
       Optionale Spalten: deadline_date, prior_reminder_sent, add_final_deadline, mention_default_interest, mention_legal_action
     </p>
@@ -639,6 +680,54 @@
     }
     return false;
   }
+  const COLUMN_ALIASES = {
+    debtor_name: ['debtor_name', 'schuldner', 'kunde', 'name', 'debtor', 'empfänger', 'firmenname'],
+    creditor_name: ['creditor_name', 'gläubiger', 'creditor', 'mandant', 'auftraggeber', 'ihr mandant'],
+    amount: ['amount', 'betrag', 'summe', 'rechnungssumme', 'offener betrag', 'wert', 'forderung'],
+    invoice_date: ['invoice_date', 'rechnungsdatum', 'datum', 'invoice date', 'belegdatum'],
+    due_date: ['due_date', 'fälligkeitsdatum', 'fällig am', 'due date', 'fällig'],
+    deadline_date: ['deadline_date', 'fristdatum', 'frist', 'letzte frist', 'deadline'],
+    prior_reminder_sent: ['prior_reminder_sent', 'erinnerung gesendet', 'mahnung verschickt', 'reminder sent'],
+    add_final_deadline: ['add_final_deadline', 'letzte frist setzen', 'final deadline'],
+    mention_default_interest: ['mention_default_interest', 'verzugszinsen', 'zinsen', 'default interest'],
+    mention_legal_action: ['mention_legal_action', 'rechtliche schritte', 'klageandrohung', 'legal action']
+  };
+
+  function normalize(str) {
+    if (!str) return '';
+    return String(str).toLowerCase().replace(/[^a-z0-9äöüß]/g, '');
+  }
+
+  function autoMapRow(rawRow) {
+    const normalizedRawRow = {};
+    for (const key in rawRow) {
+      normalizedRawRow[normalize(key)] = rawRow[key];
+    }
+
+    function findMatch(field) {
+      const aliases = COLUMN_ALIASES[field];
+      for (const alias of aliases) {
+        const normAlias = normalize(alias);
+        if (normalizedRawRow[normAlias] !== undefined) {
+          return normalizedRawRow[normAlias];
+        }
+      }
+      return undefined;
+    }
+
+    return {
+      debtor_name: findMatch('debtor_name') || '',
+      creditor_name: findMatch('creditor_name') || '',
+      amount: findMatch('amount') || '',
+      invoice_date: findMatch('invoice_date') || '',
+      due_date: findMatch('due_date') || '',
+      prior_reminder_sent: parseBool(findMatch('prior_reminder_sent')),
+      add_final_deadline: parseBool(findMatch('add_final_deadline')),
+      deadline_date: findMatch('deadline_date') || '',
+      mention_default_interest: parseBool(findMatch('mention_default_interest')),
+      mention_legal_action: parseBool(findMatch('mention_legal_action'))
+    };
+  }
 
   async function generateLetter() {
     const btn = document.getElementById('generateBtn');
@@ -689,18 +778,7 @@
           return;
         }
         
-        payloadArray = parsed.data.map(row => ({
-          debtor_name: row.debtor_name || '',
-          creditor_name: row.creditor_name || '',
-          amount: row.amount || '',
-          invoice_date: row.invoice_date || '',
-          due_date: row.due_date || '',
-          prior_reminder_sent: parseBool(row.prior_reminder_sent),
-          add_final_deadline: parseBool(row.add_final_deadline),
-          deadline_date: row.deadline_date || '',
-          mention_default_interest: parseBool(row.mention_default_interest),
-          mention_legal_action: parseBool(row.mention_legal_action),
-        }));
+        payloadArray = parsed.data.map(row => autoMapRow(row));
 
       } catch (err) {
         showToast('Fehler beim Lesen der Datei.');
@@ -723,8 +801,8 @@
 
       const data = await res.json();
       
-      // Expected data is an array of generated objects: [{ draft: '...', debtor_name: '...', blocks_included: 5 }]
-      const results = Array.isArray(data) ? data : [data];
+      // Expected data: { drafts: [{ draft: '...', debtor_name: '...', blocks_included: 5 }] }
+      const results = data.drafts ? data.drafts : (Array.isArray(data) ? data : [data]);
       
       const container = document.getElementById('draftContainer');
       container.innerHTML = '';

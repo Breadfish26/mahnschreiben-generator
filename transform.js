@@ -85,11 +85,11 @@ for (const d of batch) {
 
   const draft = selected.join('\\n\\n');
 
-  results.push({ json: { debtor_name: d.debtor_name, draft: draft, blocks_included: selected.length } });
+  results.push({ debtor_name: d.debtor_name, draft: draft, blocks_included: selected.length });
 }
 
-// Return array of objects, which n8n splits into multiple items
-return results.length ? results : [{ json: { error: 'No items in batch' } }];
+// Return as a single item payload so the Respond to Webhook node bundles everything together
+return [{ json: { drafts: results } }];
 `;
 
 // Fix connections
