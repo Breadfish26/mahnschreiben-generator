@@ -36,18 +36,18 @@ We introduce a "Vorlagen" (Templates) tab. Here, users can define their own base
 I recommend we implement both **Option 1** and **Option 2**, while keeping the core generation inside your n8n workflow.
 
 ### Phase A: The Templates UI (Settings)
-1. Add a **"Textbausteine" Tab** next to "Einzelner Eintrag" and "CSV Batch Upload".
-2. Create visually distinct `textarea` fields for the core text blocks (Einleitung, Hauptteil, Letzte Frist, Verzugszinsen, Rechtliche Schritte, Grußformel).
-3. Display a small legend of available variables: `{{creditor}}`, `{{debtor}}`, `{{amount}}`, `{{invoice_date}}`, `{{due_date}}`, etc.
-4. Add Javascript logic to save/load these inputs to/from `localStorage`.
+1. [x] Add a **"Textbausteine" Tab** next to "Einzelner Eintrag" and "CSV Batch Upload".
+2. [x] Create visually distinct `textarea` fields for the core text blocks (Einleitung, Hauptteil, Letzte Frist, Verzugszinsen, Rechtliche Schritte, Grußformel).
+3. [x] Display a small legend of available variables: `{{creditor}}`, `{{debtor}}`, `{{amount}}`, `{{invoice_date}}`, `{{due_date}}`, etc.
+4. [x] Add Javascript logic to save/load these inputs to/from `localStorage`.
 
 ### Phase B: Backend Payload Adjustments
-1. Modify the `generateLetter()` API call in `index.html` to inject a `templates` object into the payload being sent to n8n.
-2. In the n8n "Assemble Letter" code node, we will update the script. If a `templates` object is provided, it uses those. Otherwise, it falls back to the current defaults.
+1. [x] Modify the `generateLetter()` API call in `index.html` to inject a `templates` object into the payload being sent to n8n.
+2. [ ] In the n8n "Assemble Letter" code node, we will update the script. If a `templates` object is provided, it uses those. Otherwise, it falls back to the current defaults.
 
 ### Phase C: Inline Editing (Quick Win)
-1. Change the `<div class="draft-card-body">` element to have the HTML attribute `contenteditable="true"`.
-2. This immediately allows the user to click into any generated text and fix typos or add custom lines before exporting.
+1. [x] Change the `<div class="draft-card-body">` element to have the HTML attribute `contenteditable="true"`.
+2. [x] This immediately allows the user to click into any generated text and fix typos or add custom lines before exporting.
 
 ---
 

@@ -406,26 +406,7 @@
   /* ── Section dividers ── */
   .form-section { margin-bottom: 32px; }
 
-  /* ── Webhook config ── */
-  .webhook-config {
-    margin-bottom: 28px;
-    padding: 14px 16px;
-    background: rgba(184,151,58,0.06);
-    border: 1px solid rgba(184,151,58,0.2);
-    border-radius: var(--radius);
-  }
-
-  .webhook-config label {
-    color: var(--gold);
-    margin-bottom: 6px;
-  }
-
-  .webhook-config input {
-    background: var(--white);
-    font-size: 12px;
-    font-family: monospace;
-  }
-
+  /* ── Print Styles ── */
   @media print {
     body { display: block; }
     header, .panel-form { display: none; }
@@ -502,6 +483,26 @@
     font-weight: 400;
   }
   
+  /* ── Templates UI ── */
+  .template-textarea {
+    width: 100%;
+    height: 70px;
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    color: var(--ink);
+    background: var(--paper);
+    resize: vertical;
+    outline: none;
+    transition: all 0.2s;
+  }
+  .template-textarea:focus {
+    border-color: var(--gold);
+    background: var(--white);
+  }
+  
   /* ── Mapping UI ── */
   .mapping-grid {
     display: grid;
@@ -555,16 +556,10 @@
 <!-- LEFT: Form -->
 <div class="panel-form">
 
-  <div class="webhook-config">
-    <label>n8n Webhook URL</label>
-    <input type="text" id="webhookUrl"
-      value="https://n8n-eccsgw8s40o0cgoosg84g888.34.59.132.81.sslip.io/webhook/mahnschreiben"
-      placeholder="https://your-n8n.com/webhook/mahnschreiben">
-  </div>
-
   <div class="mode-tabs">
     <button class="tab-btn active" id="tab-single" onclick="switchMode('single')">Einzelner Eintrag</button>
     <button class="tab-btn" id="tab-batch" onclick="switchMode('batch')">CSV Batch Upload</button>
+    <button class="tab-btn" id="tab-templates" onclick="switchMode('templates')">Textbausteine</button>
   </div>
 
   <div id="batch-mode" style="display: none; margin-bottom: 32px;">
@@ -586,6 +581,45 @@
         <!-- Generated via JS -->
       </div>
     </div>
+  </div>
+
+  <div id="templates-mode" style="display: none; margin-bottom: 32px;">
+    <div class="section-label">Vorlagen bearbeiten</div>
+    <p style="font-size: 11px; color: var(--ink-faint); margin-bottom: 24px; line-height: 1.5;">
+      Verwenden Sie Variablen in doppelten geschweiften Klammern (z.B. {{amount}} oder {{debtor_name}}), um dynamische Inhalte einzufügen.<br>
+      <span style="color: var(--gold);">Variablen: {{debtor_name}}, {{creditor_name}}, {{amount}}, {{invoice_date}}, {{due_date}}, {{deadline_date}}</span>
+    </p>
+
+    <div class="form-group">
+      <label>Einleitung</label>
+      <textarea class="template-textarea" id="tpl_intro"></textarea>
+    </div>
+    <div class="form-group">
+      <label>Rechnungshinweis (Hauptteil)</label>
+      <textarea class="template-textarea" id="tpl_body"></textarea>
+    </div>
+    <div class="form-group">
+      <label>Mahngebühren / Zinsen</label>
+      <textarea class="template-textarea" id="tpl_fees"></textarea>
+    </div>
+    <div class="form-group">
+      <label>Erinnerungskontext (Wenn Erinnerung bereits gesendet)</label>
+      <textarea class="template-textarea" id="tpl_reminder"></textarea>
+    </div>
+    <div class="form-group">
+      <label>Letzte Frist</label>
+      <textarea class="template-textarea" id="tpl_deadline"></textarea>
+    </div>
+    <div class="form-group">
+      <label>Klageandrohung</label>
+      <textarea class="template-textarea" id="tpl_legal"></textarea>
+    </div>
+    <div class="form-group">
+      <label>Grußformel</label>
+      <textarea class="template-textarea" id="tpl_closing"></textarea>
+    </div>
+    
+    <button class="btn-action btn-print" onclick="saveTemplates()" style="width: 100%; padding: 12px; margin-top: 10px;">Vorlagen Speichern</button>
   </div>
 
   <div id="single-mode">
@@ -720,12 +754,56 @@
     { key: 'mention_legal_action', label: 'Rechtliche Schritte androhen' }
   ];
 
+  const defaultTemplates = {
+    intro: "Sehr geehrte Damen und Herren,",
+    body: "wir erlauben uns, Sie höflich auf eine noch offene Zahlung aufmerksam zu machen.\n\nUnsere Rechnung vom {{invoice_date}} über den Betrag von {{amount}} war gemäß unseren Zahlungsbedingungen bis zum {{due_date}} zur Zahlung fällig. Bis heute konnten wir leider keinen entsprechenden Zahlungseingang verzeichnen.",
+    fees: "Da Sie sich in Verzug befinden, behalten wir uns vor, Verzugszinsen in gesetzlicher Höhe geltend zu machen.",
+    reminder: "Möglicherweise hat diese Rechnung Ihre Aufmerksamkeit bislang nicht erreicht. Wir bitten Sie, den ausstehenden Betrag umgehend auf unser Konto zu überweisen.",
+    deadline: "Wir setzen Ihnen hiermit eine letzte Frist zur Zahlung bis zum {{deadline_date}}.",
+    legal: "Sollten wir bis zum Ablauf der Frist keinen Zahlungseingang verzeichnen, werden wir ohne weitere Ankündigung rechtliche Schritte gegen Sie einleiten.",
+    closing: "Mit freundlichen Grüßen"
+  };
+
+  function loadTemplates() {
+    const saved = JSON.parse(localStorage.getItem('lexTemplates') || 'null') || defaultTemplates;
+    document.getElementById('tpl_intro').value = saved.intro;
+    document.getElementById('tpl_body').value = saved.body;
+    document.getElementById('tpl_fees').value = saved.fees;
+    document.getElementById('tpl_reminder').value = saved.reminder;
+    document.getElementById('tpl_deadline').value = saved.deadline;
+    document.getElementById('tpl_legal').value = saved.legal;
+    document.getElementById('tpl_closing').value = saved.closing;
+  }
+
+  function saveTemplates() {
+    const tpls = {
+      intro: document.getElementById('tpl_intro').value,
+      body: document.getElementById('tpl_body').value,
+      fees: document.getElementById('tpl_fees').value,
+      reminder: document.getElementById('tpl_reminder').value,
+      deadline: document.getElementById('tpl_deadline').value,
+      legal: document.getElementById('tpl_legal').value,
+      closing: document.getElementById('tpl_closing').value
+    };
+    localStorage.setItem('lexTemplates', JSON.stringify(tpls));
+    showToast('Vorlagen erfolgreich gespeichert.');
+  }
+
+  function getActiveTemplates() {
+    return JSON.parse(localStorage.getItem('lexTemplates') || 'null') || defaultTemplates;
+  }
+
   function switchMode(mode) {
     currentMode = mode;
     document.getElementById('tab-single').classList.toggle('active', mode === 'single');
     document.getElementById('tab-batch').classList.toggle('active', mode === 'batch');
+    document.getElementById('tab-templates').classList.toggle('active', mode === 'templates');
+    
     document.getElementById('single-mode').style.display = mode === 'single' ? 'block' : 'none';
     document.getElementById('batch-mode').style.display = mode === 'batch' ? 'block' : 'none';
+    document.getElementById('templates-mode').style.display = mode === 'templates' ? 'block' : 'none';
+    
+    document.getElementById('generateBtn').style.display = mode === 'templates' ? 'none' : 'block';
   }
 
   function toggleDeadline(cb) {
@@ -818,11 +896,20 @@
     document.getElementById('mapping-section').style.display = 'block';
   }
 
+  function replaceTemplateTags(template, row) {
+    if (!template) return '';
+    let text = template;
+    const tags = ['debtor_name', 'creditor_name', 'amount', 'invoice_date', 'due_date', 'deadline_date'];
+    tags.forEach(tag => {
+      // Use RegEx to replace all occurrences case-insensitively
+      const regex = new RegExp(`{{${tag}}}`, 'gi');
+      text = text.replace(regex, row[tag] || '');
+    });
+    return text;
+  }
+
   async function generateLetter() {
     const btn = document.getElementById('generateBtn');
-    const webhookUrl = document.getElementById('webhookUrl').value.trim();
-
-    if (!webhookUrl) { showToast('Bitte Webhook-URL eingeben.'); return; }
 
     let payloadArray = [];
 
@@ -879,29 +966,72 @@
     btn.classList.add('loading');
 
     try {
-      // Send the entire array to the webhook
-      const res = await fetch(webhookUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ batch: payloadArray }), // wrapped in "batch"
-      });
+      const templates = getActiveTemplates();
+      const results = [];
 
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      for (const row of payloadArray) {
+        let draftParts = [];
+        let blocks = 0;
 
-      const data = await res.json();
-      
-      // Expected data: { drafts: [{ draft: '...', debtor_name: '...', blocks_included: 5 }] }
-      const results = data.drafts ? data.drafts : (Array.isArray(data) ? data : [data]);
+        // 1. Intro
+        if (templates.intro) {
+          draftParts.push(replaceTemplateTags(templates.intro, row));
+          blocks++;
+        }
+
+        // 2. Reminder context (if checked)
+        if (row.prior_reminder_sent && templates.reminder) {
+          draftParts.push(replaceTemplateTags(templates.reminder, row));
+          blocks++;
+        }
+
+        // 3. Main body
+        if (templates.body) {
+          draftParts.push(replaceTemplateTags(templates.body, row));
+          blocks++;
+        }
+
+        // 4. Default Interest (if checked)
+        if (row.mention_default_interest && templates.fees) {
+          draftParts.push(replaceTemplateTags(templates.fees, row));
+          blocks++;
+        }
+
+        // 5. Final Deadline (if checked)
+        if (row.add_final_deadline && templates.deadline) {
+          draftParts.push(replaceTemplateTags(templates.deadline, row));
+          blocks++;
+        }
+
+        // 6. Legal Action (if checked)
+        if (row.mention_legal_action && templates.legal) {
+          draftParts.push(replaceTemplateTags(templates.legal, row));
+          blocks++;
+        }
+
+        // 7. Closing
+        if (templates.closing) {
+          draftParts.push(replaceTemplateTags(templates.closing, row));
+          blocks++;
+        }
+
+        const draftText = draftParts.join('\n\n');
+        
+        results.push({
+          debtor_name: row.debtor_name,
+          draft: draftText,
+          blocks_included: blocks
+        });
+      }
       
       const container = document.getElementById('draftContainer');
       container.innerHTML = '';
       allDraftsText = '';
 
       results.forEach((item, index) => {
-        // extract string draft whether inside json or directly
-        const draftText = item.draft || item.json?.draft || JSON.stringify(item, null, 2);
-        const name = item.debtor_name || item.json?.debtor_name || `Kunde ${index + 1}`;
-        const blocks = item.blocks_included || item.json?.blocks_included || '—';
+        const draftText = item.draft;
+        const name = item.debtor_name || `Kunde ${index + 1}`;
+        const blocks = item.blocks_included;
 
         allDraftsText += `--- ${name} ---\\n\\n${draftText}\\n\\n\\n`;
 
@@ -912,7 +1042,7 @@
             <span>An: ${name}</span>
             <span>Bausteine: ${blocks}</span>
           </div>
-          <div class="draft-card-body">${draftText.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</div>
+          <div class="draft-card-body" contenteditable="true">${draftText.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</div>
         `;
         container.appendChild(card);
       });
@@ -922,7 +1052,8 @@
       document.getElementById('result').classList.add('visible');
 
     } catch (err) {
-      showToast('Fehler: ' + err.message + '. Ist der Webhook aktiv?');
+      showToast('Fehler bei der Generierung.');
+      console.error(err);
     } finally {
       btn.disabled = false;
       btn.classList.remove('loading');
@@ -930,7 +1061,22 @@
   }
 
   function copyDraft() {
-    navigator.clipboard.writeText(allDraftsText).then(() => {
+    const cards = document.querySelectorAll('.draft-card');
+    let textToCopy = '';
+    
+    if (cards.length > 0) {
+      cards.forEach(card => {
+        const nameNode = card.querySelector('.draft-card-header span:first-child');
+        const name = nameNode ? nameNode.innerText.replace('An: ', '') : 'Unbekannt';
+        const bodyNode = card.querySelector('.draft-card-body');
+        const bodyContent = bodyNode ? bodyNode.innerText : '';
+        textToCopy += `--- ${name} ---\\n\\n${bodyContent}\\n\\n\\n`;
+      });
+    } else {
+      textToCopy = allDraftsText;
+    }
+
+    navigator.clipboard.writeText(textToCopy).then(() => {
       const btn = document.querySelector('.btn-copy');
       btn.textContent = 'Kopiert ✓';
       btn.classList.add('copied');
@@ -948,8 +1094,10 @@
     setTimeout(() => t.classList.remove('show'), 3500);
   }
 
-  // Setup drag & drop
+  // Setup drag & drop and initial state
   document.addEventListener('DOMContentLoaded', () => {
+    loadTemplates();
+
     const dropZone = document.getElementById('drop-zone');
     dropZone.addEventListener('dragover', (e) => {
       e.preventDefault();
