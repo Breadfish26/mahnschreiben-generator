@@ -9,55 +9,31 @@ Here is a step-by-step implementation plan.
 Currently, the frontend uses a single form and posts one JSON object to the API. We need to implement a batch processing UI alongside it.
 
 ### A. UI Additions
-*   **Mode Switcher**: Add a toggle or tab system at the top of the form area (e.g., "Single Entry" vs. "Batch Upload").
-*   **File Input**: When in "Batch Upload" mode, display an `<input type="file" accept=".csv" />` drag-and-drop zone.
-*   **Output Display**: The output panel needs to be changed from a single `<div class="draft-box">` to a list or grid of expandable cards, each showing one letter. 
-*   **Bulk Actions**: Provide buttons to "Print All" and "Download All as TXT/PDF".
+*   [x] **Mode Switcher**: Add a toggle or tab system at the top of the form area (e.g., "Single Entry" vs. "Batch Upload").
+*   [x] **File Input**: When in "Batch Upload" mode, display an `<input type="file" accept=".csv" />` drag-and-drop zone.
+*   [x] **Output Display**: The output panel needs to be changed from a single `<div class="draft-box">` to a list or grid of expandable cards, each showing one letter. 
+*   [x] **Bulk Actions**: Provide buttons to "Print All" and "Download All as TXT/PDF". (Print and Copy All implemented)
 
 ### B. JavaScript Processing
-*   **CSV Parsing**: Introduce a lightweight script to parse the uploaded CSV. The CSV is expected to have generic headers like `debtor_name`, `creditor_name`, `amount`, `invoice_date`, `due_date`, `deadline_date`, etc.
-*   **Payload Structuring**: Convert the parsed CSV rows into an array of parameter objects.
-*   **API Request**: Depending on how we configure n8n (see below), we either:
-    1.  Post the entire array in **one single payload** to the webhook (recommended).
-    2.  Send individual requests in a loop using `Promise.all()` (less efficient but requires zero n8n structural changes).
+*   [x] **CSV Parsing**: Introduce a lightweight script to parse the uploaded CSV. (PapaParse integrated)
+*   [x] **Payload Structuring**: Convert the parsed CSV rows into an array of parameter objects.
+*   [x] **API Request**: Post the entire array in **one single payload** to the webhook.
 
 ## 2. Backend Updates (`n8n Workflow`)
 
-We will adjust the n8n workflow to handle an array of inputs rather than a singular object. I reviewed your current `Mahnschreiben_Generator.json` to map out exactly what needs to change.
+We adjust the n8n workflow to handle an array of inputs rather than a singular object. 
 
 ### A. Webhook Node
-*   The webhook currently accepts a generic JSON payload. We will adjust it to expect a root array (if sending the whole batch in one call), like `{"batch": [{ "debtor_name": "A", ... }, { "debtor_name": "B", ... }]}`.
+*   [x] Expect a root array like `{"batch": [{ "debtor_name": "A", ... }, { "debtor_name": "B", ... }]}`.
 
 ### B. Normalize Node (n8n-nodes-base.set)
-*   Right now, "Normalize" extracts hardcoded values using `={{ $json.body.debtor_name }}`. 
-*   If we pass an array inside `body.batch`, we will insert an **Item Lists node** before Normalize to split the array of records into individual n8n items. The Set node will then act upon each item in the batch automatically.
+*   [x] Removed! We process the full batch object directly in the Code node.
 
 ### C. Code Node (`Assemble Letter`)
-*   The code currently fetches only the first normalized item:
-    `const d = $('Normalize').first().json;`
-*   **Refactor**: Change the script to iterate over all items that enter the node. Instead of just grabbing `.first()`, we will use `$input.all()`:
-    ```javascript
-    const items = $input.all();
-    const results = [];
-
-    for (const item of items) {
-      const d = item.json;
-      // ... run the existing assembly logic ...
-      results.push({
-        json: { 
-          debtor_name: d.debtor_name, 
-          draft: draft, 
-          blocks_included: selected.length 
-        }
-      });
-    }
-
-    return results;
-    ```
+*   [x] **Refactor**: Change the script to iterate over all items that enter the node and extract `body.batch` payload to do loop generation internally.
 
 ### D. Re-bundling and Webhook Response
-*   Since the webhook must return a single HTTP response (an array of generated drafts), we will add another **Item Lists node (Aggregate)** after the Code node. This gathers all the individually generated letter strings back into one array list.
-*   The **Respond to Webhook node** will receive this final grouped list and return it back to the frontend.
+*   [x] The **Code Node** returns the complete array of items, and the Response webhook handles returning it to the frontend natively without an aggregate node.
 
 ---
 

@@ -440,7 +440,32 @@
     header { padding: 16px 24px; }
     .panel-form, .panel-output { padding: 28px 24px; }
   }
+
+  /* ── Tabs & Batch ── */
+  .mode-tabs {
+    display: flex; gap: 8px; margin-bottom: 24px;
+    border-bottom: 1px solid var(--border); padding-bottom: 12px;
+  }
+  .tab-btn {
+    background: none; border: none; font-family: inherit; font-size: 12px;
+    font-weight: 500; text-transform: uppercase; letter-spacing: 0.1em;
+    color: var(--ink-faint); cursor: pointer; padding: 6px 12px; border-radius: var(--radius);
+  }
+  .tab-btn.active { background: var(--paper-2); color: var(--ink); }
+  
+  .draft-card { margin-bottom: 24px; animation: fadeIn 0.4s ease; }
+  .draft-card-header {
+    background: var(--paper-2); padding: 10px 16px; border-radius: var(--radius) var(--radius) 0 0;
+    font-size: 12px; font-weight: 600; display: flex; justify-content: space-between;
+  }
+  .draft-card-body {
+    background: var(--white); border: 1px solid var(--border); border-top: none;
+    border-radius: 0 0 var(--radius) var(--radius); padding: 24px 32px;
+    font-family: 'Playfair Display', serif; font-size: 14px; line-height: 1.9;
+    white-space: pre-wrap; box-shadow: var(--shadow);
+  }
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 </head>
 <body>
 
@@ -462,12 +487,27 @@
       placeholder="https://your-n8n.com/webhook/mahnschreiben">
   </div>
 
-  <div class="form-section">
-    <div class="section-label">Parteien</div>
-    <div class="form-group">
-      <label>Gläubiger (Ihr Mandant)</label>
-      <input type="text" id="creditor_name" placeholder="Musterfirma GmbH" value="Musterfirma GmbH">
-    </div>
+  <div class="mode-tabs">
+    <button class="tab-btn active" id="tab-single" onclick="switchMode('single')">Einzelner Eintrag</button>
+    <button class="tab-btn" id="tab-batch" onclick="switchMode('batch')">CSV Batch Upload</button>
+  </div>
+
+  <div id="batch-mode" style="display: none; margin-bottom: 32px;">
+    <div class="section-label">CSV Datei Hochladen</div>
+    <input type="file" id="csvFile" accept=".csv" />
+    <p style="font-size: 11px; color: var(--ink-faint); margin-top: 8px; line-height: 1.5;">
+      Pflichtspalten: debtor_name, creditor_name, amount, invoice_date, due_date<br>
+      Optionale Spalten: deadline_date, prior_reminder_sent, add_final_deadline, mention_default_interest, mention_legal_action
+    </p>
+  </div>
+
+  <div id="single-mode">
+    <div class="form-section">
+      <div class="section-label">Parteien</div>
+      <div class="form-group">
+        <label>Gläubiger (Ihr Mandant)</label>
+        <input type="text" id="creditor_name" placeholder="Musterfirma GmbH" value="Musterfirma GmbH">
+      </div>
     <div class="form-group">
       <label>Schuldner</label>
       <input type="text" id="debtor_name" placeholder="Max Mustermann" value="Max Mustermann">
@@ -542,6 +582,7 @@
 
     </div>
   </div>
+  </div> <!-- closing single-mode -->
 
   <button class="btn-generate" id="generateBtn" onclick="generateLetter()">
     <span class="btn-text">Mahnschreiben generieren</span>
@@ -561,25 +602,42 @@
 
   <div class="output-result" id="result">
     <div class="output-meta">
-      <span class="output-meta-label">Fertig</span>
+      <span class="output-meta-label">Fertig <span id="batchCountBadge" style="margin-left: 8px; color: var(--ink);"></span></span>
       <div class="output-actions">
-        <button class="btn-action btn-copy" onclick="copyDraft()">Kopieren</button>
+        <button class="btn-action btn-copy" onclick="copyDraft()">Alle Kopieren</button>
         <button class="btn-action btn-print" onclick="window.print()">Drucken</button>
       </div>
     </div>
-    <div class="draft-box" id="draftBox"></div>
-    <div class="blocks-badge">
-      Textbausteine verwendet: <span id="blocksCount">—</span>
-    </div>
+    <div id="draftContainer"></div>
   </div>
 </div>
 
 <div class="toast" id="toast"></div>
 
 <script>
+  let currentMode = 'single';
+  let allDraftsText = '';
+
+  function switchMode(mode) {
+    currentMode = mode;
+    document.getElementById('tab-single').classList.toggle('active', mode === 'single');
+    document.getElementById('tab-batch').classList.toggle('active', mode === 'batch');
+    document.getElementById('single-mode').style.display = mode === 'single' ? 'block' : 'none';
+    document.getElementById('batch-mode').style.display = mode === 'batch' ? 'block' : 'none';
+  }
+
   function toggleDeadline(cb) {
     const field = document.getElementById('deadline-field');
     field.classList.toggle('visible', cb.checked);
+  }
+
+  function parseBool(val) {
+    if (typeof val === 'boolean') return val;
+    if (typeof val === 'string') {
+      const lower = val.trim().toLowerCase();
+      return lower === 'true' || lower === '1' || lower === 'ja' || lower === 'yes';
+    }
+    return false;
   }
 
   async function generateLetter() {
@@ -588,42 +646,111 @@
 
     if (!webhookUrl) { showToast('Bitte Webhook-URL eingeben.'); return; }
 
-    const payload = {
-      debtor_name:              document.getElementById('debtor_name').value.trim(),
-      creditor_name:            document.getElementById('creditor_name').value.trim(),
-      amount:                   document.getElementById('amount').value.trim(),
-      invoice_date:             document.getElementById('invoice_date').value.trim(),
-      due_date:                 document.getElementById('due_date').value.trim(),
-      prior_reminder_sent:      document.getElementById('prior_reminder_sent').checked,
-      add_final_deadline:       document.getElementById('add_final_deadline').checked,
-      deadline_date:            document.getElementById('deadline_date').value.trim(),
-      mention_default_interest: document.getElementById('mention_default_interest').checked,
-      mention_legal_action:     document.getElementById('mention_legal_action').checked,
-    };
+    let payloadArray = [];
 
-    if (!payload.debtor_name || !payload.creditor_name || !payload.amount) {
-      showToast('Bitte alle Pflichtfelder ausfüllen.');
-      return;
+    if (currentMode === 'single') {
+      const payload = {
+        debtor_name:              document.getElementById('debtor_name').value.trim(),
+        creditor_name:            document.getElementById('creditor_name').value.trim(),
+        amount:                   document.getElementById('amount').value.trim(),
+        invoice_date:             document.getElementById('invoice_date').value.trim(),
+        due_date:                 document.getElementById('due_date').value.trim(),
+        prior_reminder_sent:      document.getElementById('prior_reminder_sent').checked,
+        add_final_deadline:       document.getElementById('add_final_deadline').checked,
+        deadline_date:            document.getElementById('deadline_date').value.trim(),
+        mention_default_interest: document.getElementById('mention_default_interest').checked,
+        mention_legal_action:     document.getElementById('mention_legal_action').checked,
+      };
+
+      if (!payload.debtor_name || !payload.creditor_name || !payload.amount) {
+        showToast('Bitte alle Pflichtfelder ausfüllen.');
+        return;
+      }
+      payloadArray.push(payload);
+    } else {
+      const fileInput = document.getElementById('csvFile');
+      if (!fileInput.files.length) {
+        showToast('Bitte eine CSV Datei auswählen.');
+        return;
+      }
+
+      try {
+        const file = fileInput.files[0];
+        const text = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = e => resolve(e.target.result);
+          reader.onerror = reject;
+          reader.readAsText(file);
+        });
+
+        const parsed = Papa.parse(text, { header: true, skipEmptyLines: true });
+        if (parsed.errors.length) {
+          showToast('Fehler beim Parsen der CSV (Zeile ' + parsed.errors[0].row + ').');
+          return;
+        }
+        
+        payloadArray = parsed.data.map(row => ({
+          debtor_name: row.debtor_name || '',
+          creditor_name: row.creditor_name || '',
+          amount: row.amount || '',
+          invoice_date: row.invoice_date || '',
+          due_date: row.due_date || '',
+          prior_reminder_sent: parseBool(row.prior_reminder_sent),
+          add_final_deadline: parseBool(row.add_final_deadline),
+          deadline_date: row.deadline_date || '',
+          mention_default_interest: parseBool(row.mention_default_interest),
+          mention_legal_action: parseBool(row.mention_legal_action),
+        }));
+
+      } catch (err) {
+        showToast('Fehler beim Lesen der Datei.');
+        return;
+      }
     }
 
     btn.disabled = true;
     btn.classList.add('loading');
 
     try {
+      // Send the entire array to the webhook
       const res = await fetch(webhookUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ batch: payloadArray }), // wrapped in "batch"
       });
 
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
       const data = await res.json();
-      const draft = data.draft || data.data?.[0]?.draft || JSON.stringify(data, null, 2);
-      const blocks = data.blocks_included || data.data?.[0]?.blocks_included || '—';
+      
+      // Expected data is an array of generated objects: [{ draft: '...', debtor_name: '...', blocks_included: 5 }]
+      const results = Array.isArray(data) ? data : [data];
+      
+      const container = document.getElementById('draftContainer');
+      container.innerHTML = '';
+      allDraftsText = '';
 
-      document.getElementById('draftBox').textContent = draft;
-      document.getElementById('blocksCount').textContent = blocks;
+      results.forEach((item, index) => {
+        // extract string draft whether inside json or directly
+        const draftText = item.draft || item.json?.draft || JSON.stringify(item, null, 2);
+        const name = item.debtor_name || item.json?.debtor_name || `Kunde ${index + 1}`;
+        const blocks = item.blocks_included || item.json?.blocks_included || '—';
+
+        allDraftsText += `--- ${name} ---\\n\\n${draftText}\\n\\n\\n`;
+
+        const card = document.createElement('div');
+        card.className = 'draft-card';
+        card.innerHTML = `
+          <div class="draft-card-header">
+            <span>An: ${name}</span>
+            <span>Bausteine: ${blocks}</span>
+          </div>
+          <div class="draft-card-body">${draftText.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</div>
+        `;
+        container.appendChild(card);
+      });
+
+      document.getElementById('batchCountBadge').textContent = `(${results.length} Dokument${results.length > 1 ? 'e' : ''})`;
       document.getElementById('placeholder').style.display = 'none';
       document.getElementById('result').classList.add('visible');
 
@@ -636,13 +763,12 @@
   }
 
   function copyDraft() {
-    const text = document.getElementById('draftBox').textContent;
-    navigator.clipboard.writeText(text).then(() => {
+    navigator.clipboard.writeText(allDraftsText).then(() => {
       const btn = document.querySelector('.btn-copy');
       btn.textContent = 'Kopiert ✓';
       btn.classList.add('copied');
       setTimeout(() => {
-        btn.textContent = 'Kopieren';
+        btn.textContent = 'Alle Kopieren';
         btn.classList.remove('copied');
       }, 2000);
     });

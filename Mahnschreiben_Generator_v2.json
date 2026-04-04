@@ -1,0 +1,86 @@
+{
+  "name": "Mahnschreiben_Generator_v2",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "mahnschreiben",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "631ff285-bcd2-467d-9a6b-5a2cceb96eff",
+      "name": "Webhook",
+      "webhookId": "6f272e46-fa38-480a-908e-4b1ba2c678aa"
+    },
+    {
+      "parameters": {
+        "jsCode": "const batch = $input.first().json.body.batch || [];\nconst results = [];\n\nconst modules = {\n  INTRODUCTION:\n`Sehr geehrte Damen und Herren,\n\nwir erlauben uns, Sie höflich auf eine noch offene Zahlung aufmerksam zu machen.`,\n\n  INVOICE_REFERENCE:\n`Unsere Rechnung vom {{invoice_date}} über den Betrag von {{amount}} war gemäß unseren Zahlungsbedingungen bis zum {{due_date}} zur Zahlung fällig. Bis heute konnten wir leider keinen entsprechenden Zahlungseingang verzeichnen.`,\n\n  DEFAULT_NOTICE_SOFT:\n`Möglicherweise hat diese Rechnung Ihre Aufmerksamkeit bislang nicht erreicht. Wir bitten Sie, den ausstehenden Betrag umgehend auf unser Konto zu überweisen.`,\n\n  DEFAULT_NOTICE_STRONG:\n`Trotz unserer bereits erfolgten Zahlungserinnerung ist der genannte Betrag bis heute nicht auf unserem Konto eingegangen. Wir müssen Sie daher ausdrücklich mahnen und fordern Sie auf, den Rückstand unverzüglich auszugleichen.`,\n\n  FINAL_DEADLINE:\n`Wir setzen Ihnen hiermit eine letzte Zahlungsfrist bis zum {{deadline_date}}. Sollte der Betrag bis zu diesem Datum nicht vollständig eingegangen sein, werden wir weitere Maßnahmen einleiten.`,\n\n  INTEREST_NOTICE:\n`Wir weisen darauf hin, dass gemäß § 288 BGB ab dem Zeitpunkt des Zahlungsverzugs Verzugszinsen in Höhe von 9 Prozentpunkten über dem jeweiligen Basiszinssatz anfallen.`,\n\n  LEGAL_ACTION_NOTICE:\n`Sollte eine Zahlung bis zum genannten Termin ausbleiben, werden wir die Angelegenheit ohne weitere Ankündigung einem Rechtsanwalt übergeben und gerichtliche Schritte einleiten.`,\n\n  CLOSING:\n`Wir gehen davon aus, dass es sich um ein Versehen handelt, und sind überzeugt, dass Sie die Angelegenheit umgehend klären werden. Für Rückfragen stehen wir Ihnen jederzeit gerne zur Verfügung.\n\nMit freundlichen Grüßen\n\n{{creditor_name}}`,\n};\n\nfunction fill(text, vars) {\n  return text.replace(/\\{\\{(\\w+)\\}\\}/g, (_, key) => vars[key] ?? `[${key} MISSING]`);\n}\n\nfor (const d of batch) {\n  const vars = {\n    debtor_name:   d.debtor_name,\n    creditor_name: d.creditor_name,\n    amount:        d.amount,\n    invoice_date:  d.invoice_date,\n    due_date:      d.due_date,\n    deadline_date: d.deadline_date,\n  };\n\n  const selected = [];\n  selected.push(fill(modules.INTRODUCTION, vars));\n  selected.push(fill(modules.INVOICE_REFERENCE, vars));\n\n  if (d.prior_reminder_sent) {\n    selected.push(fill(modules.DEFAULT_NOTICE_STRONG, vars));\n  } else {\n    selected.push(fill(modules.DEFAULT_NOTICE_SOFT, vars));\n  }\n\n  if (d.add_final_deadline) {\n    selected.push(fill(modules.FINAL_DEADLINE, vars));\n  }\n\n  if (d.mention_default_interest) {\n    selected.push(fill(modules.INTEREST_NOTICE, vars));\n  }\n\n  if (d.mention_legal_action) {\n    selected.push(fill(modules.LEGAL_ACTION_NOTICE, vars));\n  }\n\n  selected.push(fill(modules.CLOSING, vars));\n\n  const draft = selected.join('\\n\\n');\n\n  results.push({ json: { debtor_name: d.debtor_name, draft: draft, blocks_included: selected.length } });\n}\n\n// Return array of objects, which n8n splits into multiple items\nreturn results.length ? results : [{ json: { error: 'No items in batch' } }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        368,
+        0
+      ],
+      "id": "d11dc068-4405-4cef-a045-7bf54935fd6c",
+      "name": "Assemble Letter"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        576,
+        0
+      ],
+      "id": "5f14bade-36e5-4097-b18a-aae1800fa899",
+      "name": "Respond to Webhook"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Assemble Letter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Assemble Letter": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "57935a97-f002-43c9-a6c4-38e61cfa9050",
+  "meta": {
+    "instanceId": "a22da2310a02e504e1e62785813935b7a2a76cd62f1c8287ae9b6bd2470c02c5"
+  },
+  "id": "hHlJV68X4KPFMeHa",
+  "tags": []
+}
