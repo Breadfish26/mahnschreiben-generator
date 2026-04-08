@@ -1136,6 +1136,15 @@
         </div>
       </label>
 
+      <label class="toggle-row" for="include_ue">
+        <span class="toggle-label">Unterlassungserklärung beifügen</span>
+        <div class="toggle-switch">
+          <input type="checkbox" id="include_ue" checked>
+          <div class="toggle-track"></div>
+          <div class="toggle-thumb"></div>
+        </div>
+      </label>
+
     </div>
   </div>
   </div> <!-- closing single-mode -->
@@ -1693,7 +1702,8 @@
       reminder: "Es handelt sich bei der vorgenommenen Handlung um eine geschäftliche Nutzung, die eine entsprechende Sorgfaltspflicht Ihrerseits voraussetzt.",
       deadline: "Ich fordere Sie auf, den Gesamtbetrag von {{SUMME_GESAMT}} bis zum {{deadline_date}} auf das unten genannte Konto zu überweisen.",
       legal: "Sollte diese Frist fruchtlos verstreichen, wird mein Mandant nicht zögern, seine Ansprüche gerichtlich durchzusetzen.",
-      closing: "Mit freundlichen Grüßen\n\nDaniel Grosche\nRechtsanwalt"
+      closing: "Mit freundlichen Grüßen",
+      ue: "Ich, {{GEGNER_NAME}}, verpflichte mich hiermit gegenüber {{creditor_name}}, es bei Meidung einer für jeden Fall der Zuwiderhandlung fälligen, von {{creditor_name}} nach billigem Ermessen festzusetzenden und im Streitfall vom zuständigen Gericht zu überprüfenden Vertragsstrafe zu unterlassen, \n\n{{gegner_werk}} \n\nohne Einwilligung von {{creditor_name}} zu vervielfältigen oder öffentlich zugänglich zu machen, wie am {{KURZDATUM}} auf {{gegner_platform}} geschehen.\n\n___________________________\nOrt, Datum, Unterschrift"
     },
     copyright_privat: {
       intro: "Sehr geehrter {{GEGNER_TITEL}} {{GEGNER_NAME}},\n\nich schreibe Ihnen im Namen meines Mandanten {{creditor_name}}.",
@@ -1702,7 +1712,8 @@
       reminder: "Bislang wurde auf unsere Hinweise nicht reagiert.",
       deadline: "Bitte überweisen Sie den Betrag bis zum {{deadline_date}}.",
       legal: "Vermeiden Sie durch rechtzeitige Zahlung weitere Kosten eines Gerichtsverfahrens.",
-      closing: "Mit freundlichen Grüßen"
+      closing: "Mit freundlichen Grüßen",
+      ue: "Ich, {{GEGNER_NAME}}, verpflichte mich gegenüber {{creditor_name}}, es zu unterlassen, das Werk {{gegner_werk}} ohne Erlaubnis zu nutzen.\n\n___________________________\nOrt, Datum, Unterschrift"
     }
   };
 
@@ -1731,8 +1742,10 @@
   function renderA4HTML(draftText, row, sender) {
     const today = new Date().toLocaleDateString('de-DE');
     const isCeti = document.getElementById('case_type')?.value?.startsWith('copyright');
+    const includeUE = document.getElementById('include_ue')?.checked;
     
-    return `
+    // Main Letter Page
+    const page1 = `
       <div class="a4-preview a4-pdf-root">
         <!-- DIN Marks -->
         <div class="a4-mark a4-mark-fold-1"></div>
@@ -1810,6 +1823,27 @@
         </div>
       </div>
     `;
+
+    // Enclosure Page (UE)
+    if (includeUE && isCeti) {
+      const templates = getActiveTemplates();
+      const ueText = replaceTemplateTags(templates.ue || '', row);
+      const page2 = `
+        <div class="a4-preview a4-pdf-root" style="page-break-before: always;">
+          <div class="a4-top-accent"></div>
+          <div class="a4-logo-ceti">
+            <svg width="160" height="45" viewBox="0 0 160 45" xmlns="http://www.w3.org/2000/svg">
+              <text x="0" y="38" font-family="Inter, -apple-system, sans-serif" font-weight="900" font-size="34" fill="#1A1A1A" letter-spacing="-1.5">CETI</text>
+            </svg>
+          </div>
+          <div class="a4-subject" style="margin-top: 45mm;">Strafbewehrte Unterlassungs- und Verpflichtungserklärung</div>
+          <div class="a4-body-text" style="line-height: 1.8;">${ueText.replace(/\n\n/g, '<div style="margin-bottom: 5mm;"></div>').replace(/\n/g, '<br>')}</div>
+        </div>
+      `;
+      return page1 + page2;
+    }
+
+    return page1;
   }
 
   function resetCounter() {
@@ -1858,6 +1892,7 @@
       due_date:                 document.getElementById('due_date').value.trim() || '26.02.2025',
       prior_reminder_sent:      document.getElementById('prior_reminder_sent').checked,
       add_final_deadline:       document.getElementById('add_final_deadline').checked,
+      include_ue:               document.getElementById('include_ue').checked,
       deadline_date:            document.getElementById('deadline_date').value.trim() || '15.03.2025',
       mention_default_interest: document.getElementById('mention_default_interest').checked,
       mention_legal_action:     document.getElementById('mention_legal_action').checked,
