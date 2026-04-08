@@ -608,7 +608,14 @@
     padding: 0;
     box-sizing: border-box;
     flex-shrink: 0;
-    margin: 0 auto;
+    margin: 0 auto 24px auto;
+  }
+  
+  .pdf-export-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
   }
 
   @media (max-width: 1400px) {
@@ -638,6 +645,13 @@
     color: var(--ink-faint); 
     display: grid; 
     font-size: 10.5pt;
+  }
+  
+  .a4-preview.is-ceti .a4-content {
+    padding-right: 75mm;
+  }
+  .a4-preview.is-ceti .a4-address-window {
+    width: 100mm;
   }
 
   .a4-logo-ceti {
@@ -700,19 +714,14 @@
     line-height: 1.4;
   }
 
-  .a4-info-block {
-    margin-top: 10mm;
-    margin-left: 120mm;
-    font-size: 9pt;
-    line-height: 1.6;
-  }
-
+  .a4-content { padding: 95mm 20mm 20mm 25mm; font-family: 'Playfair Display', serif; }
   .a4-subject {
-    margin-top: 15mm;
+    margin-top: 5mm;
     margin-bottom: 8mm;
     font-weight: 700;
-    font-size: 12pt;
+    font-size: 11.5pt;
     color: #1A1A1A;
+    line-height: 1.4;
   }
 
   .a4-body-text {
@@ -824,10 +833,13 @@
         <button type="button" class="chip-btn" onclick="insertVariable('{{AKTE_ZEICHEN}}', 'Aktenzeichen')" title="Aktenzeichen einfügen">+ Aktenzeichen</button>
         <button type="button" class="chip-btn" onclick="insertVariable('{{AKTE_KURZRUBRUM}}', 'Rubrum')" title="Kurzrubrum einfügen">+ Rubrum</button>
         <button type="button" class="chip-btn" onclick="insertVariable('{{GEGNER_NAME}}', 'Schuldner')" title="Schuldner einfügen">+ Schuldner</button>
-        <button type="button" class="chip-btn" onclick="insertVariable('{{GEGNER_AKTE_ZEICHEN}}', 'Ihr Zeichen')" title="Gegner Zeichen einfügen">+ Ihr Zeichen</button>
+        <button type="button" class="chip-btn" onclick="insertVariable('{{GEGNER_WERK}}', 'Werk-Titel')" title="Bezeichnung des Bildes">+ Werk-Titel</button>
+        <button type="button" class="chip-btn" onclick="insertVariable('{{GEGNER_WERK_DESC}}', 'Werk-Art')" title="Art des Bildes">+ Werk-Art</button>
+        <button type="button" class="chip-btn" onclick="insertVariable('{{GEGNER_REFERENZ_SCREENSHOT}}', 'Screenshot-Ref')" title="Verweis auf Screenshot">+ Screenshot-Ref</button>
         <button type="button" class="chip-btn" onclick="insertVariable('{{GEGNER_AKTE_EIGENE1}}', 'URL 1')" title="Fundstelle URL einfügen">+ URL 1</button>
         <button type="button" class="chip-btn" onclick="insertVariable('{{FALL_GEGENSTANDSWERT}}', 'Gegenstandswert')" title="Streitwert">+ Streitwert</button>
         <button type="button" class="chip-btn" onclick="insertVariable('{{FALL_SCHADENSERSATZ}}', 'Schadensersatz')" title="Lizenzschaden">+ Schadensersatz</button>
+        <button type="button" class="chip-btn" onclick="insertVariable('{{FACTORS_INCREASE}}', 'Erhöhungs-Gründe')" title="Liste der Erhöhungsgründe">+ Erhöhungs-Gründe</button>
         <button type="button" class="chip-btn" onclick="insertVariable('{{FALL_ANWALTSKOSTEN}}', 'Anwaltskosten')" title="RVG Kosten">+ Anwaltskosten</button>
         <button type="button" class="chip-btn" onclick="insertVariable('{{SUMME_GESAMT}}', 'Summe Gesamt')" title="Gesamtbetrag">+ Summe</button>
         <button type="button" class="chip-btn" onclick="insertVariable('{{deadline_date}}', 'Fristdatum')" title="Fristdatum einfügen">+ Fristdatum</button>
@@ -863,7 +875,10 @@
       <div class="template-textarea" contenteditable="true" id="tpl_closing"></div>
     </div>
     
-    <button class="btn-action btn-print" onclick="saveTemplates()" style="width: 100%; padding: 12px; margin-top: 10px;">Vorlagen Speichern</button>
+    <div style="display: flex; gap: 12px; margin-top: 10px;">
+      <button class="btn-action btn-print" onclick="saveTemplates()" style="flex: 2; padding: 12px;">Vorlagen Speichern</button>
+      <button class="btn-action" onclick="resetTemplatesToDefault()" style="flex: 1; padding: 12px; background: var(--white); color: var(--ink); border: 1px solid var(--border);">Zurücksetzen</button>
+    </div>
   </div>
 
   <div id="sender-mode" style="display: none; margin-bottom: 32px;">
@@ -1046,9 +1061,19 @@
         <option value="Sonstiges">Sonstiges</option>
       </select>
     </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Bezeichnung des Werkes (z.B. Foto "Panorama Frankfurt")</label>
+        <input type="text" id="gegner_werk" placeholder="z.B. Lichtbildwerk 'Panorama Frankfurt'">
+      </div>
+      <div class="form-group">
+        <label>Art des Werkes (z.B. Panorama-Lichtbildwerk)</label>
+        <input type="text" id="gegner_werk_desc" placeholder="z.B. Panorama-Lichtbildwerk">
+      </div>
+    </div>
     <div class="form-group">
-      <label>Bezeichnung des Werkes (z.B. Foto "Panorama Frankfurt")</label>
-      <input type="text" id="gegner_werk" placeholder="z.B. Lichtbildwerk 'Panorama Frankfurt'">
+      <label>Website des Mandanten (Referenz)</label>
+      <input type="text" id="creditor_website" placeholder="www.herrmann-fotos.de">
     </div>
     <div class="form-group">
       <label>URL / Fundstelle 1 (Evidence)</label>
@@ -1145,12 +1170,59 @@
         </div>
       </label>
 
+      <div class="section-label" style="margin-top: 24px; margin-bottom: 12px; font-size: 9px; border-bottom: none;">Erhöhungsfaktoren (Schadensersatz)</div>
+      
+      <label class="toggle-row" for="factor_social">
+        <span class="toggle-label">Social Media Nutzung (LinkedIn etc.)</span>
+        <div class="toggle-switch">
+          <input type="checkbox" id="factor_social">
+          <div class="toggle-track"></div>
+          <div class="toggle-thumb"></div>
+        </div>
+      </label>
+
+      <label class="toggle-row" for="factor_effort">
+        <span class="toggle-label">Hoher technischer Aufwand</span>
+        <div class="toggle-switch">
+          <input type="checkbox" id="factor_effort">
+          <div class="toggle-track"></div>
+          <div class="toggle-thumb"></div>
+        </div>
+      </label>
+
+      <label class="toggle-row" for="factor_attribution">
+        <span class="toggle-label">Urheberbenennung fehlt (+100%)</span>
+        <div class="toggle-switch">
+          <input type="checkbox" id="factor_attribution" checked>
+          <div class="toggle-track"></div>
+          <div class="toggle-thumb"></div>
+        </div>
+      </label>
+
+      <label class="toggle-row" for="factor_panorama">
+        <span class="toggle-label">Panoramabild / Spezial-Equipment</span>
+        <div class="toggle-switch">
+          <input type="checkbox" id="factor_panorama">
+          <div class="toggle-track"></div>
+          <div class="toggle-thumb"></div>
+        </div>
+      </label>
+
+      <label class="toggle-row" for="factor_fame">
+        <span class="toggle-label">Hoher Bekanntheitsgrad (Referenzen)</span>
+        <div class="toggle-switch">
+          <input type="checkbox" id="factor_fame">
+          <div class="toggle-track"></div>
+          <div class="toggle-thumb"></div>
+        </div>
+      </label>
+
     </div>
   </div>
   </div> <!-- closing single-mode -->
 
-  <button class="btn-generate" id="generateBtn" onclick="generateLetter()">
-    <span class="btn-text">Batch CSV generieren</span>
+  <button class="btn-generate" id="generateBtn" onclick="onPrimaryButtonClick()">
+    <span class="btn-text" id="generateBtnText">Zahlungsaufforderung erstellen</span>
     <span class="btn-loading"><div class="spinner"></div></span>
   </button>
 
@@ -1228,6 +1300,7 @@
     { key: 'aktenzeichen', label: 'Aktenzeichen' },
     { key: 'akte_kurzrubrum', label: 'Akten-Kurzrubrum' },
     { key: 'creditor_name', label: 'Gläubiger (Pflicht)' },
+    { key: 'creditor_website', label: 'Gläubiger Website' },
     { key: 'debtor_vorname', label: 'Schuldner Vorname' },
     { key: 'debtor_name', label: 'Schuldner Nachname (Pflicht)' },
     { key: 'debtor_titel', label: 'Schuldner Titel' },
@@ -1235,6 +1308,9 @@
     { key: 'debtor_zip', label: 'Schuldner PLZ' },
     { key: 'debtor_city', label: 'Schuldner Ort' },
     { key: 'gegner_akte_zeichen', label: 'Gegner Akt-Zeichen' },
+    { key: 'gegner_werk', label: 'Bezeichnung des Werkes' },
+    { key: 'gegner_werk_desc', label: 'Art des Werkes (z.B. Panorama)' },
+    { key: 'gegner_platform', label: 'Plattform (Medium)' },
     { key: 'gegner_url1', label: 'Fundstelle / URL 1' },
     { key: 'gegner_url2', label: 'Fundstelle / URL 2' },
     { key: 'gegenstandswert', label: 'Gegenstandswert' },
@@ -1251,13 +1327,13 @@
   ];
 
   const defaultTemplates = {
-    intro: "Sehr geehrte Damen und Herren,",
-    body: "wir erlauben uns, Sie höflich auf eine noch offene Zahlung aufmerksam zu machen.\n\nUnsere Rechnung vom {{invoice_date}} über den Betrag von {{amount}} war gemäß unseren Zahlungsbedingungen bis zum {{due_date}} zur Zahlung fällig. Bis heute konnten wir leider keinen entsprechenden Zahlungseingang verzeichnen.",
-    fees: "Da Sie sich in Verzug befinden, behalten wir uns vor, Verzugszinsen in gesetzlicher Höhe geltend zu machen.",
-    reminder: "Möglicherweise hat diese Rechnung Ihre Aufmerksamkeit bislang nicht erreicht. Wir bitten Sie, den ausstehenden Betrag umgehend auf unser Konto zu überweisen.",
-    deadline: "Wir setzen Ihnen hiermit eine letzte Frist zur Zahlung bis zum {{deadline_date}}.",
-    legal: "Sollten wir bis zum Ablauf der Frist keinen Zahlungseingang verzeichnen, werden wir ohne weitere Ankündigung rechtliche Schritte gegen Sie einleiten.",
-    closing: "Mit freundlichen Grüßen"
+    intro: "Sehr geehrte(r) {{GEGNER_TITEL}} {{GEGNER_NAME}},\n\nich zeige die anwaltliche Vertretung von Herrn {{creditor_name}}, geschäftsansässig Bessemer Str. 51 / 1. OG, 12103 Berlin an. Das Vorliegen einer ordnungsgemäßen Bevollmächtigung wird anwaltlich versichert.\n\nMein Mandant hat mich mit der Durchsetzung seiner Urheberrechte beauftragt. Die Rechtsverfolgung ist für meinen Mandanten von existenzieller Bedeutung, da dieser professionell Lichtbildwerke erstellt und vermarktet. Diese Aktivitäten dienen dem primären Lebenserwerb meines Mandanten. Eine Übersicht über die Tätigkeit findet sich unter {{CREDITOR_WEBSITE}}.",
+    body: "Neben einer Vielzahl anderer geschützter Werke hat mein Mandant das folgende Lichtbildwerk erstellt:\n\n{{GEGNER_WERK}}\n\nMein Mandant musste kürzlich feststellen, dass Sie das vorstehend genannte Werk ohne die erforderliche Berechtigung sowie ohne Angabe der Urheberschaft meines Mandanten auf Ihrer Internetpräsenz verwendet haben. Ich verweise beispielhaft auf {{GEGNER_REFERENZ_SCREENSHOT}}:\n\nFundstelle: {{GEGNER_AKTE_EIGENE1}}\n\nDie festgestellte Nutzung ohne gültige Lizenz stellt eine Verletzung des Vervielfältigungsrechts (§ 16 UrhG) sowie des Rechts der öffentlichen Zugänglichmachung (§ 19a UrhG) dar. Da zudem keine Urheberbenennung erfolgte, liegt ein Verstoß gegen § 13 UrhG vor. Hieraus resultieren die folgenden Ansprüche meines Mandanten:\n\n1. Unterlassungsanspruch (§ 97 Abs. 1 UrhG)\nDurch die rechtswidrige Nutzung besteht die tatsächliche Vermutung einer Wiederholungsgefahr (vgl. BGH GRUR 1994, 913 – LM Ltd). Zur Ausräumung dieser Gefahr schulden Sie meinem Mandanten die Abgabe einer rechtsverbindlichen, strafbewehrten Unterlassungserklärung. Ein entsprechender Entwurf liegt diesem Schreiben bei.\n\n2. Schadensersatzanspruch (§ 97 Abs. 2 UrhG)\nSie schulden Schadensersatz im Wege der Lizenzanalogie. Es wird ermittelt, was vernünftige Vertragspartner als Vergütung vereinbart hätten (vgl. BGH, I ZR 187/17). Hierbei finden folgende wertbildende Faktoren Berücksichtigung:\n\n{{FACTORS_INCREASE}}",
+    fees: "3. Aufwendungsersatzanspruch\nSchließlich sind Sie zur Erstattung der durch meine Inanspruchnahme entstandenen Gebühren verpflichtet. Die Berechnung erfolgt auf Basis eines Gegenstandswerts von {{FALL_GEGENSTANDSWERT}}:\n\n1,3 Geschäftsgebühr (Nr. 2300 VV RVG): {{FALL_FEE_13}}\nAuslagenpauschale (Nr. 7002 VV RVG): {{FALL_EXPENSES}}\nGesamtbetrag Anwaltskosten: {{FALL_ANWALTSKOSTEN}}",
+    reminder: "",
+    deadline: "Insgesamt schulden Sie die Zahlung eines Betrages in Höhe von {{SUMME_GESAMT}} sowie die Abgabe der beigefügten strafbewehrten Unterlassungs- und Verpflichtungserklärung.\n\nIch habe Ihnen hierfür eine Frist gesetzt bis zum\n\n{{deadline_date}}\n\nDie Übermittlung der Unterlassungserklärung vorab per E-Mail oder Fax ist fristwahrend, sofern das unterzeichnete Original zeitnah nachgereicht wird.",
+    legal: "Die Zahlung des Gesamtbetrags in Höhe von {{SUMME_GESAMT}} erwarte ich bis zum Ablauf der Frist auf das folgende Kanzleikonto:\n\nEmpfänger: Daniel Grosche\nIBAN: {{sender_iban}}\nBIC: {{sender_bic}}\nVerwendungszweck: {{AKTE_ZEICHEN}} / {{GEGNER_NAME}}\n\nSollte die Frist fruchtlos verstreichen, wird mein Mandant ohne weitere Vorankündigung gerichtliche Hilfe in Anspruch nehmen, was für Sie mit erheblichen weiteren Kosten verbunden wäre.",
+    closing: "Die weitere Korrespondenz führen Sie bitte ausschließlich über meine Kanzlei.\n\nMit freundlichen Grüßen\n\nDaniel Grosche\nRechtsanwalt"
   };
 
   const VAR_MAP = {
@@ -1270,18 +1346,20 @@
     '{{GEGNER_STRASSE}}': 'Gegner Straße',
     '{{GEGNER_PLZ}}': 'Gegner PLZ',
     '{{GEGNER_ORT}}': 'Gegner Ort',
+    '{{GEGNER_WERK}}': 'Werk-Titel',
+    '{{GEGNER_WERK_DESC}}': 'Werk-Art',
+    '{{GEGNER_REFERENZ_SCREENSHOT}}': 'Screenshot-Ref',
     '{{GEGNER_AKTE_ZEICHEN}}': 'Gegner Zeichen',
     '{{GEGNER_AKTE_EIGENE1}}': 'URL 1',
     '{{GEGNER_AKTE_EIGENE2}}': 'URL 2',
+    '{{CREDITOR_WEBSITE}}': 'Gläubiger Website',
     '{{FALL_GEGENSTANDSWERT}}': 'Gegenstandswert',
     '{{FALL_SCHADENSERSATZ}}': 'Schadensersatz',
+    '{{FACTORS_INCREASE}}': 'Erhöhungs-Gründe',
     '{{FALL_ANWALTSKOSTEN}}': 'Anwaltskosten',
+    '{{FALL_FEE_13}}': 'Fee 1.3',
+    '{{FALL_EXPENSES}}': 'Auslagen',
     '{{SUMME_GESAMT}}': 'Summe Gesamt',
-    '{{GA_TABELLE}}': 'Kosten-Tabelle',
-    '{{aktenzeichen}}': 'Aktenzeichen (Legacy)',
-    '{{amount}}': 'Betrag',
-    '{{invoice_date}}': 'Rechnungsdatum',
-    '{{due_date}}': 'Fälligkeitsdatum',
     '{{deadline_date}}': 'Fristdatum'
   };
 
@@ -1310,14 +1388,34 @@
   }
 
   function loadTemplates() {
-    const saved = JSON.parse(localStorage.getItem('lexTemplates') || 'null') || defaultTemplates;
+    let saved = JSON.parse(localStorage.getItem('lexTemplates') || 'null');
+    
+    // Auto-upgrade legacy generic templates to CETI
+    // Also upgrade if the old CETI intro was present (missing "anwaltliche")
+    if (saved && saved.body && (saved.body.startsWith('wir erlauben uns') || saved.intro.includes('zeige die Vertretung'))) {
+      saved = defaultTemplates;
+      localStorage.setItem('lexTemplates', JSON.stringify(defaultTemplates));
+      showToast('Templates auf CETI Fach-Standard aktualisiert.', 'info');
+    } else if (!saved) {
+      saved = defaultTemplates;
+    }
+
     document.getElementById('tpl_intro').innerHTML = textToHtml(saved.intro);
     document.getElementById('tpl_body').innerHTML = textToHtml(saved.body);
     document.getElementById('tpl_fees').innerHTML = textToHtml(saved.fees);
-    document.getElementById('tpl_reminder').innerHTML = textToHtml(saved.reminder);
+    document.getElementById('tpl_reminder').innerHTML = textToHtml(saved.reminder || '');
     document.getElementById('tpl_deadline').innerHTML = textToHtml(saved.deadline);
     document.getElementById('tpl_legal').innerHTML = textToHtml(saved.legal);
     document.getElementById('tpl_closing').innerHTML = textToHtml(saved.closing);
+  }
+
+  function resetTemplatesToDefault() {
+    if (confirm('Möchten Sie alle Textbausteine auf die CETI-Standardvorgaben zurücksetzen? Eigene Änderungen gehen verloren.')) {
+      localStorage.setItem('lexTemplates', JSON.stringify(defaultTemplates));
+      loadTemplates();
+      updateLivePreview();
+      showToast('Vorgaben wurden zurückgesetzt.');
+    }
   }
 
   function saveTemplates() {
@@ -1350,7 +1448,8 @@
     document.getElementById('templates-mode').style.display = mode === 'templates' ? 'block' : 'none';
     document.getElementById('sender-mode').style.display = mode === 'sender' ? 'block' : 'none';
     
-    document.getElementById('generateBtn').style.display = mode === 'batch' ? 'block' : 'none';
+    document.getElementById('generateBtn').style.display = 'flex';
+    document.getElementById('generateBtnText').textContent = mode === 'batch' ? 'Batch CSV generieren' : 'Als PDF herunterladen';
     
     if (mode === 'batch') {
       document.getElementById('livePreviewContainer').style.display = 'none';
@@ -1367,17 +1466,17 @@
   }
 
   const defaultSender = {
-    name: "Musterfirma GmbH",
-    street: "Musterstraße 1",
-    zip: "12345",
-    city: "Musterstadt",
-    iban: "",
-    bic: "",
-    bank: "",
-    ceo: "",
-    hrb: "",
-    email: "",
-    website: ""
+    name: "Daniel Grosche",
+    street: "Bessemer Str. 51 / 1. OG",
+    zip: "12103",
+    city: "Berlin",
+    iban: "DE17 6204 0050 0218 3503 01",
+    bic: "COBA DEFF XXX",
+    bank: "Commerzbank",
+    ceo: "Daniel Grosche",
+    hrb: "-",
+    email: "mail@dg-law.de",
+    website: "www.ceti.legal"
   };
 
   function loadSenderSettings() {
@@ -1457,6 +1556,14 @@
     if(hiddenId === 'sigData') document.getElementById('sigFile').value = '';
     
     updateLivePreview();
+  }
+
+  function onPrimaryButtonClick() {
+    if (currentMode === 'batch') {
+      generateLetter();
+    } else {
+      exportPDF();
+    }
   }
 
   function toggleDeadline(cb) {
@@ -1620,10 +1727,18 @@
       'GEGNER_PLZ': 'debtor_zip',
       'GEGNER_ORT': 'debtor_city',
       'GEGNER_AKTE_ZEICHEN': 'gegner_akte_zeichen',
+      'GEGNER_WERK': 'gegner_werk',
+      'GEGNER_WERK_DESC': 'gegner_werk_desc',
+      'GEGNER_PLATFORM': 'gegner_platform',
       'GEGNER_AKTE_EIGENE1': 'gegner_url1',
       'GEGNER_AKTE_EIGENE2': 'gegner_url2',
+      'GEGNER_REFERENZ_SCREENSHOT': () => row.gegner_url1 ? 'nachstehendem Screenshot' : 'oben genanntem Link',
+      'CREDITOR_WEBSITE': (row.creditor_website || 'www.ceti.legal'),
       'FALL_GEGENSTANDSWERT': () => rvg.gegenstandswert,
-      'FALL_SCHADENSERSATZ': 'schadensersatz',
+      'FALL_SCHADENSERSATZ': () => {
+        const val = parseFloat(String(row.schadensersatz || 0).replace(/[^0-9.,]/g, '').replace(',', '.')) || 0;
+        return val.toLocaleString('de-DE', { minimumFractionDigits: 2 }) + ' €';
+      },
       'FALL_ANWALTSKOSTEN': () => rvg.gesamt,
       'FALL_FEE_13': () => rvg.geschäftsgebühr,
       'FALL_EXPENSES': () => rvg.auslagen,
@@ -1631,6 +1746,17 @@
         const schaden = parseFloat(String(row.schadensersatz || 0).replace(/[^0-9.,]/g, '').replace(',', '.')) || 0;
         const fees = parseFloat(rvg.gesamt.replace(/[^0-9.,]/g, '').replace(',', '.')) || 0;
         return (schaden + fees).toLocaleString('de-DE', { minimumFractionDigits: 2 }) + ' €';
+      },
+      'FACTORS_INCREASE': () => {
+        let factors = [];
+        if (row.factor_social) factors.push("• das gegenständliche Werk wurde als Titelbild auf Ihrer LinkedIn Präsenz prominent und weltweit abrufbar platziert und werblich genutzt. Bei LinkedIn handelt es sich um eine Social-Media Plattform für den beruflichen Austausch und zur geschäftlicher Vernetzung;");
+        if (row.factor_effort) factors.push("• die Erstellung des Werkes erfolgte unter erheblichem Aufwand. Insbesondere fanden vorliegend eine Langzeitbelichtung vom Stativ, der Einsatz von Filtern sowie eine umfangreiche nachträgliche Bildbearbeitung der Bild-Rohdatei am Computer statt;");
+        if (row.factor_attribution) factors.push("• durch die festgestellte unterlassene Benennung als Urheber, auf die nach § 13 UrhG mein Mandant Anspruch hat, erhöht sich nach ständiger Rechtsprechung der Schadensersatz um 100 %, vgl. BGH, Urteil vom 13.09.2018, Az.: I ZR 187/17 — Sportbuzzer;");
+        if (row.factor_panorama) factors.push("• bei dem gegenständlichen Werk meines Mandanten handelt es sich um ein Panoramabild. Panoramabilder bilden einen großen Betrachtungswinkel ab. Für hochwertig erstellte Panoramabilder wird spezielles fotografisches Equipment benötigt;");
+        if (row.factor_fame) factors.push("• das künstlerische Werk meines Mandanten hat einen hohen Bekanntheitsgrad. Motive meines Mandanten zierten bereits Briefmarken der Deutschen Post, ein 51 Meter langes Panoramawerk zierte einen Berliner S-Bahnhof und wurden im ZEISS Grossplanetarium ausgestellt.");
+        
+        if (factors.length === 0) return "";
+        return factors.join("\n\n") + "\n\nUnter Zugrundelegung dieser Faktoren und der Berücksichtigung der Listenpreis meines Mandanten wird der meinen Mandanten entstandene Lizenzschaden mit {{FALL_SCHADENSERSATZ}} beziffert.";
       },
       'creditor_name': 'creditor_name',
       'amount': 'amount',
@@ -1696,14 +1822,14 @@
 
   const cetiTemplates = {
     copyright_gewerblich: {
-      intro: "Sehr geehrter {{GEGNER_TITEL}} {{GEGNER_NAME}},\n\nich zeige die Vertretung von {{creditor_name}} an. Das Vorliegen ordnungsgemäßer Vollmacht wird anwaltlich versichert.",
-      body: "Mein Mandant hat mich mit der Durchsetzung seiner Rechte beauftragt. Er hat festgestellt, dass Sie {{gegner_werk}} ohne seine Berechtigung und ohne Urheberbenennung auf der Plattform {{gegner_platform}} verwendet haben. \n\nDas gegenständliche Werk wurde unter folgendem Link gefunden: {{GEGNER_AKTE_EIGENE1}}\n\nDie festgestellte Nutzung ohne Lizenz ist als Vervielfältigung und öffentliche Zugänglichmachung rechtswidrig §§ 16, 19 a UrhG.",
-      fees: "Gemäß § 97 Abs. 2 UrhG schulden Sie meinem Mandanten Schadensersatz für die festgestellte Nutzung. Dieser beläuft sich nach den Grundsätzen der Lizenzanalogie auf insgesamt {{FALL_SCHADENSERSATZ}}. \n\nZudem sind Sie zur Erstattung der durch meine Inanspruchnahme entstandenen Anwaltskosten verpflichtet. Diese berechnen sich aus einem Gegenstandswert von {{FALL_GEGENSTANDSWERT}} wie folgt:\n\n1,3 Geschäftsgebühr: {{FALL_FEE_13}}\nAuslagenpauschale: {{FALL_EXPENSES}}\nGesamtbetrag Anwaltskosten: {{FALL_ANWALTSKOSTEN}}",
-      reminder: "Es handelt sich bei der vorgenommenen Handlung um eine geschäftliche Nutzung, die eine entsprechende Sorgfaltspflicht Ihrerseits voraussetzt.",
-      deadline: "Ich fordere Sie auf, den Gesamtbetrag von {{SUMME_GESAMT}} bis zum {{deadline_date}} auf das unten genannte Konto zu überweisen.",
-      legal: "Sollte diese Frist fruchtlos verstreichen, wird mein Mandant nicht zögern, seine Ansprüche gerichtlich durchzusetzen.",
-      closing: "Mit freundlichen Grüßen",
-      ue: "Ich, {{GEGNER_NAME}}, verpflichte mich hiermit gegenüber {{creditor_name}}, es bei Meidung einer für jeden Fall der Zuwiderhandlung fälligen, von {{creditor_name}} nach billigem Ermessen festzusetzenden und im Streitfall vom zuständigen Gericht zu überprüfenden Vertragsstrafe zu unterlassen, \n\n{{gegner_werk}} \n\nohne Einwilligung von {{creditor_name}} zu vervielfältigen oder öffentlich zugänglich zu machen, wie am {{KURZDATUM}} auf {{gegner_platform}} geschehen.\n\n___________________________\nOrt, Datum, Unterschrift"
+      intro: "Sehr geehrte(r) {{GEGNER_TITEL}} {{GEGNER_NAME}},\n\nich zeige die Vertretung von Herrn {{creditor_name}}, geschäftsansässig Bessemer Str. 51 / 1. OG, 12103 Berlin an. Das Vorliegen ordnungsgemäßer Vollmacht wird anwaltlich versichert.\n\nMein Mandant hat mich mit der Durchsetzung seiner Rechte beauftragt. Die Durchsetzung ist für meinen Mandanten entscheidend, da dieser professionell Lichtbildwerke erstellt und vermarktet. Diese Aktivitäten dienen dem Lebenserwerb meines Mandanten. Eine entsprechende Internetpräsenz findet sich unter {{CREDITOR_WEBSITE}}.",
+      body: "Neben diesen Werken hat mein Mandant das Nachstehende erstellt:\n\n{{GEGNER_WERK}}\n\nMein Mandant musste kürzlich feststellen, dass Sie vorstehendes Werk ohne Berechtigung, sowie ohne Angabe der Urheberschaft meines Mandanten verwendet haben. Ich verweise auf {{GEGNER_REFERENZ_SCREENSHOT}}:\n\nDas Werk wurde auf folgendem Link gefunden: {{GEGNER_AKTE_EIGENE1}}\n\nDie festgestellte Nutzung ohne Lizenz ist als Vervielfältigung und öffentliche Zugänglichmachung rechtswidrig §§ 16, 19 a UrhG, erst recht ohne Nennung meines Mandanten als Urheber; § 13 UrhG, und lässt nachfolgende Ansprüche entstehen:\n\n1. Die rechtswidrige Nutzung begründet für meinen Mandanten einen Unterlassungsanspruch gemäß §§ 97 Abs. 1, 13, 16, 19 a UrhG. Aufgrund der rechtswidrigen Nutzung des Werks besteht eine tatsächliche Vermutung für das Vorliegen der Wiederholungsgefahr, vgl. BGH GRUR 1994, 913 (915) — LM Ltd; BGH GRUR 1998, 564 (566) — Klartext; LfH/Steffen/LPG § 8 Rn. 284; Wenzel/Burkhardt Rn. 12.0. Diese ist zum jetzigen Zeitpunkt nicht ausgeräumt.\n\nSie schulden daher meinem Mandanten die Abgabe einer strafbewehrten Unterlassungserklärung, die geeignet ist, die Wiederholungsgefahr auszuräumen. Sie können hierzu den beigefügten Entwurf verwenden.\n\n2. Weiterhin schulden Sie meinem Mandanten gem. § 97 Abs. 2 UrhG Schadensersatz für die festgestellte Nutzung, vgl. BGH, Urteil vom 13.09.2018, Az: I ZR 187/17. Der Schadensersatz wird nach den Grundsätzen der Lizenzanalogie berechnet, vgl. BGH, Urteil vom 13.09.2018, Az: I ZR 187/17. Es wird danach gefragt, zu welchem Preis unsere Mandantschaft Ihnen die fragliche Nutzung erlaubt hätte. Hierbei finden folgende Umstände Berücksichtigung:\n\n{{FACTORS_INCREASE}}",
+      fees: "3. Schlussendlich schulden Sie meinem Mandanten die Erstattung der durch meine Inanspruchnahme entstandenen Anwaltskosten.\n\nDiese werden wie folgt beziffert:\n\nGegenstandswert: {{FALL_GEGENSTANDSWERT}} (12.000 € Unterlassung + {{FALL_SCHADENSERSATZ}} Schadensersatz)\n1,3 Geschäftsgebühr §§ 13, 14 RVG, Nr. 2300 VV RVG: {{FALL_FEE_13}}\nPauschale für Post und Telekommunikation Nr. 7002 VV RVG: {{FALL_EXPENSES}}\nGesamtbetrag Anwaltskosten: {{FALL_ANWALTSKOSTEN}}",
+      reminder: "",
+      deadline: "Insgesamt schulden Sie daher meinem Mandanten die Zahlung eines Geldbetrages in Höhe von {{SUMME_GESAMT}}, sowie die Abgabe einer strafbewehrten Unterlassungserklärung.\n\nMeine Mandantschaft erwartet den Eingang einer strafbewehrten Unterlassungserklärung zum\n\n{{deadline_date}}\n\nEine Übermittlung vorab per Fax oder E-Mail werde ich als fristwahrend ansehen, sofern das handschriftlich unterzeichnete Original hier drei Werktage nach Erhalt des Faxes oder der E-Mail eingeht.",
+      legal: "Dem Eingang des Zahlbetrages in Höhe von {{SUMME_GESAMT}} sehe ich unter o.g. Fristsetzung auf nachfolgendes Konto entgegen:\n\nEmpfänger: Daniel Grosche\nIBAN: {{sender_iban}}\nBIC: {{sender_bic}}\nReferenz: {{AKTE_ZEICHEN}}\n\nSollte die vorstehend gesetzte Frist jedoch fruchtlos verstreichen, wird mein Mandant nicht zögern, seine Ansprüche gerichtlich, ggf. im Wege eines einstweiligen Verfügungsverfahrens durchzusetzen, wodurch Ihnen erhebliche Mehrkosten entstehen werden.",
+      closing: "Die Korrespondenz in dieser Angelegenheit bitte ich ausschließlich über meine Kanzlei zu führen.\n\nMit freundlichen Grüßen\n\nDaniel Grosche\nRechtsanwalt",
+      ue: "Strafbewehrte Unterlassungserklärung\n\nHiermit verpflichten sich\ndie {{GEGNER_NAME}}, vertr. d. d. Geschäftsführung {{GEGNER_TITEL}} {{GEGNER_NAME}},\n{{GEGNER_STRASSE}}, {{GEGNER_PLZ}} {{GEGNER_ORT}},\n\n(im folgenden Unterlassungsschuldner genannt)\n\ngegenüber Herrn {{creditor_name}}, Bessemer Str. 51 / 1. OG, 12103 Berlin\n\n(im folgenden Unterlassungsgläubiger genannt)\n\n1. es zu unterlassen, das nachfolgend wiedergegebene Werk\n\n{{GEGNER_WERK}}\n\nohne Einwilligung des Unterlassungsgläubigers und/oder ohne den Unterlassungsgläubiger als dessen Urheber zu benennen, öffentlich zugänglich zu machen.\n\n2. für jeden Fall der Zuwiderhandlung gegen die unter Ziffer 1. eingegangene Verpflichtung an den Unterlassungsgläubiger eine von diesem nach billigem Ermessen zu bestimmende und im Streitfall vom zuständigen Gericht zu überprüfende Vertragsstrafe zu bezahlen.\n\n3. an den Unterlassungsgläubiger gesamtschuldnerisch zur endgültigen Erledigung sämtlicher wechselseitigen Forderungen aus der gegenständlichen Urheberrechtsverletzung — unter Fortbestand der Unterlassungsverpflichtung — einen Betrag in Höhe von {{SUMME_GESAMT}} zu bezahlen.\n\n\n________________, den ____________\n\n\n___________________________\nUnterschrift"
     },
     copyright_privat: {
       intro: "Sehr geehrter {{GEGNER_TITEL}} {{GEGNER_NAME}},\n\nich schreibe Ihnen im Namen meines Mandanten {{creditor_name}}.",
@@ -1744,9 +1870,12 @@
     const isCeti = document.getElementById('case_type')?.value?.startsWith('copyright');
     const includeUE = document.getElementById('include_ue')?.checked;
     
+    // Wrapper for multi-page export
+    let htmlOutput = '<div class="pdf-export-wrapper">';
+
     // Main Letter Page
     const page1 = `
-      <div class="a4-preview a4-pdf-root">
+      <div class="a4-preview a4-pdf-root ${isCeti ? 'is-ceti' : ''}">
         <!-- DIN Marks -->
         <div class="a4-mark a4-mark-fold-1"></div>
         <div class="a4-mark a4-mark-punch"></div>
@@ -1762,18 +1891,18 @@
           </div>
           <div class="a4-sidebar">
             <div class="a4-sidebar-title">Kanzlei</div>
-            ${sender.name || 'Daniel Grosche'}<br>
-            ${sender.street || 'Mustergasse 7'}<br>
-            ${sender.zip || '12345'} ${sender.city || 'Frankfurt'}
+            <div>${sender.name || 'Daniel Grosche'}</div>
+            <div>${sender.street || 'Bessemer Str. 51 / 1. OG'}</div>
+            <div>${sender.zip || '12103'} ${sender.city || 'Berlin'}</div>
             
             <div class="a4-sidebar-title">Direktkontakt</div>
-            T: ${sender.phone || '+49 123 45678'}<br>
-            M: ${sender.email || 'mail@ceti.legal'}<br>
-            W: ${sender.website || 'www.ceti.legal'}
+            <div>T: ${sender.phone || '+49 123 45678'}</div>
+            <div>M: ${sender.email || 'mail@ceti.legal'}</div>
+            <div>W: ${sender.website || 'www.ceti.legal'}</div>
             
             <div class="a4-sidebar-title">Ihr Fall</div>
-            Ref: ${row.aktenzeichen || '-'}<br>
-            Gegner: ${row.gegner_akte_zeichen || '-'}
+            <div>Ref: ${row.aktenzeichen || 'AZ-2026-XXXX'}</div>
+            <div>Gegner: ${row.gegner_akte_zeichen || '-'}</div>
           </div>
         ` : `
           <div style="position: absolute; top: 15mm; right: 20mm; height: 15mm;">
@@ -1791,13 +1920,17 @@
         </div>
         
         <div class="a4-content">
-          <div class="a4-subject">${row.akte_kurzrubrum ? `${row.akte_kurzrubrum}<br>` : ''}${row.case_type === 'standard' ? 'Zahlungsaufforderung' : 'Abmahnung wegen Urheberrechtsverletzung'}</div>
+          <div class="a4-subject">
+            ${row.akte_kurzrubrum ? `<span style="font-size: 10pt; font-weight: normal; display: block; margin-bottom: 2mm;">Ihre Angelegenheit: ${row.akte_kurzrubrum}</span>` : ''}
+            Urheberrechtliche Abmahnung ${row.gegner_werk ? '<br>' + row.gegner_werk : ''}
+          </div>
           
           <div class="a4-body-text">${draftText.replace(/\n\n/g, '<div style="margin-bottom: 5mm;"></div>').replace(/\n/g, '<br>')}</div>
           
           <div class="a4-signature" style="margin-top: 10mm;">
             ${sender.signature ? `<img src="${sender.signature}" alt="Unterschrift" style="max-width: 150px; max-height: 60px; object-fit: contain; display: block; margin-bottom: 5px;">` : ''}
-            ${sender.name || 'Rechtsanwalt Daniel Grosche'}
+            ${sender.name || 'Daniel Grosche'}<br>
+            Rechtsanwalt
           </div>
         </div>
         
@@ -1810,9 +1943,9 @@
           </div>
           <div class="a4-footer-col">
             <strong>Bankverbindung</strong><br>
-            ${sender.bank || 'Bank Name'}<br>
-            IBAN: ${sender.iban || 'DE00 0000 0000 0000'}<br>
-            BIC: ${sender.bic || 'XXXXXXXX'}
+            Daniel Grosche<br>
+            IBAN: ${sender.iban || 'DE17 6204 0050 0218 3503 01'}<br>
+            BIC: ${sender.bic || 'COBA DEFF XXX'}
           </div>
           <div class="a4-footer-col">
              <strong>Rechtliches</strong><br>
@@ -1840,10 +1973,13 @@
           <div class="a4-body-text" style="line-height: 1.8;">${ueText.replace(/\n\n/g, '<div style="margin-bottom: 5mm;"></div>').replace(/\n/g, '<br>')}</div>
         </div>
       `;
-      return page1 + page2;
+      htmlOutput += page1 + page2;
+    } else {
+      htmlOutput += page1;
     }
 
-    return page1;
+    htmlOutput += '</div>';
+    return htmlOutput;
   }
 
   function resetCounter() {
@@ -1883,8 +2019,10 @@
       gegner_akte_zeichen:      document.getElementById('gegner_akte_zeichen').value.trim() || '-',
       gegner_platform:          document.getElementById('gegner_platform').value,
       gegner_werk:              document.getElementById('gegner_werk').value.trim() || 'das gegenständliche Werk',
+      gegner_werk_desc:         document.getElementById('gegner_werk_desc').value.trim() || 'Lichtbildwerk',
       gegner_url1:              document.getElementById('gegner_url1').value.trim(),
       gegner_url2:              document.getElementById('gegner_url2').value.trim(),
+      creditor_website:         document.getElementById('creditor_website').value.trim() || 'www.herrmann-fotos.de',
       gegenstandswert:          document.getElementById('gegenstandswert').value.trim() || '0 €',
       schadensersatz:           document.getElementById('schadensersatz').value.trim() || '0 €',
       amount:                   document.getElementById('amount').value.trim() || '0 €',
@@ -1896,6 +2034,11 @@
       deadline_date:            document.getElementById('deadline_date').value.trim() || '15.03.2025',
       mention_default_interest: document.getElementById('mention_default_interest').checked,
       mention_legal_action:     document.getElementById('mention_legal_action').checked,
+      factor_social:            document.getElementById('factor_social').checked,
+      factor_effort:            document.getElementById('factor_effort').checked,
+      factor_attribution:       document.getElementById('factor_attribution').checked,
+      factor_panorama:          document.getElementById('factor_panorama').checked,
+      factor_fame:              document.getElementById('factor_fame').checked,
     };
 
     // Auto-generate if not set manually in single mode
@@ -1986,16 +2129,19 @@
 
     } else {
       // Single Live Preview Export
-      const element = document.querySelector('#livePreviewContainer .a4-pdf-root');
+      const element = document.querySelector('#livePreviewContainer .pdf-export-wrapper');
       if (!element) {
         showToast('Keine Live-Vorschau verfügbar.');
         return;
       }
       
       const btn = document.querySelector('.btn-print');
+      const sideBtn = document.getElementById('generateBtn');
       const originalText = btn.textContent;
+      
       btn.textContent = 'Wird generiert...';
       btn.disabled = true;
+      if(sideBtn) sideBtn.disabled = true;
 
       const filenameAz = payload.aktenzeichen || '';
       const safeDebtor = payload.debtor_name.replace(/[^a-z0-9]/gi, '_');
@@ -2021,12 +2167,14 @@
         element.style.transform = originalScale;
         btn.textContent = originalText;
         btn.disabled = false;
+        if(sideBtn) sideBtn.disabled = false;
         showToast('PDF erfolgreich generiert.', 'success');
       }).catch((e) => {
         console.error(e);
         element.style.transform = originalScale;
         btn.textContent = originalText;
         btn.disabled = false;
+        if(sideBtn) sideBtn.disabled = false;
         showToast('Fehler beim Export.', 'error');
       });
     }
@@ -2053,7 +2201,8 @@
       for (const targetField in mapping) {
         const csvHeader = mapping[targetField];
         if (csvHeader && row[csvHeader] !== undefined) {
-          if (['prior_reminder_sent', 'add_final_deadline', 'mention_default_interest', 'mention_legal_action'].includes(targetField)) {
+          if (['prior_reminder_sent', 'add_final_deadline', 'mention_default_interest', 'mention_legal_action', 'include_ue', 
+               'factor_social', 'factor_effort', 'factor_attribution', 'factor_panorama', 'factor_fame'].includes(targetField)) {
             mappedRow[targetField] = parseBool(row[csvHeader]);
           } else {
             mappedRow[targetField] = row[csvHeader];
