@@ -708,6 +708,7 @@
       <div class="chip-group">
         <button type="button" class="chip-btn" onclick="insertVariable('{{creditor_name}}', 'Gläubiger')" title="Gläubiger einfügen">+ Gläubiger</button>
         <button type="button" class="chip-btn" onclick="insertVariable('{{debtor_name}}', 'Schuldner')" title="Schuldner einfügen">+ Schuldner</button>
+        <button type="button" class="chip-btn" onclick="insertVariable('{{aktenzeichen}}', 'Aktenzeichen')" title="Aktenzeichen einfügen">+ Aktenzeichen</button>
         <button type="button" class="chip-btn" onclick="insertVariable('{{amount}}', 'Betrag')" title="Betrag einfügen">+ Betrag</button>
         <button type="button" class="chip-btn" onclick="insertVariable('{{invoice_date}}', 'Rechnungsdatum')" title="Rechnungsdatum einfügen">+ Rechnungsdatum</button>
         <button type="button" class="chip-btn" onclick="insertVariable('{{due_date}}', 'Fälligkeit')" title="Fälligkeit einfügen">+ Fälligkeit</button>
@@ -848,6 +849,10 @@
     <div class="form-group">
       <label>Schuldner</label>
       <input type="text" id="debtor_name" placeholder="Max Mustermann" value="Max Mustermann">
+    </div>
+    <div class="form-group">
+      <label>Aktenzeichen (optional)</label>
+      <input type="text" id="aktenzeichen" placeholder="z.B. AZ-2026-0001">
     </div>
   </div>
 
@@ -997,6 +1002,7 @@
   }
 
   const EXPECTED_FIELDS = [
+    { key: 'aktenzeichen', label: 'Aktenzeichen' },
     { key: 'creditor_name', label: 'Gläubiger (Pflicht)' },
     { key: 'debtor_name', label: 'Schuldner (Pflicht)' },
     { key: 'amount', label: 'Betrag (Pflicht)' },
@@ -1020,6 +1026,7 @@
   };
 
   const VAR_MAP = {
+    '{{aktenzeichen}}': 'Aktenzeichen',
     '{{creditor_name}}': 'Gläubiger',
     '{{debtor_name}}': 'Schuldner',
     '{{amount}}': 'Betrag',
@@ -1216,6 +1223,7 @@
     return false;
   }
   const COLUMN_ALIASES = {
+    aktenzeichen: ['aktenzeichen', 'akte', 'az', 'referenz', 'vorgangsnummer', 'fallnummer'],
     debtor_name: ['debtor_name', 'schuldner', 'kunde', 'name', 'debtor', 'empfänger', 'firmenname', 'mandant'],
     creditor_name: ['creditor_name', 'gläubiger', 'glaeubiger', 'creditor', 'auftraggeber', 'ihr mandant', 'mandant'],
     amount: ['amount', 'betrag', 'summe', 'rechnungssumme', 'offener betrag', 'wert', 'forderung', 'forderung_eur', 'forderungeur'],
@@ -1295,13 +1303,25 @@
   function replaceTemplateTags(template, row) {
     if (!template) return '';
     let text = template;
-    const tags = ['debtor_name', 'creditor_name', 'amount', 'invoice_date', 'due_date', 'deadline_date'];
+    const tags = ['aktenzeichen', 'debtor_name', 'creditor_name', 'amount', 'invoice_date', 'due_date', 'deadline_date'];
     tags.forEach(tag => {
       // Use RegEx to replace all occurrences case-insensitively
       const regex = new RegExp(`{{${tag}}}`, 'gi');
       text = text.replace(regex, row[tag] || '');
     });
     return text;
+  }
+
+  /**
+   * Returns a valid aktenzeichen. Fallback to auto-generated if missing.
+   */
+  function getOrGenerateAktenzeichen(row, index = 0) {
+    if (row.aktenzeichen && row.aktenzeichen.trim() !== '') {
+      return row.aktenzeichen.trim();
+    }
+    const year = new Date().getFullYear();
+    const num = String(index + 1).padStart(4, '0');
+    return `AZ-${year}-${num}`;
   }
 
   function renderA4HTML(draftText, row, sender) {
@@ -1319,6 +1339,7 @@
         
         <div class="a4-info-block">
           <div><strong>Datum:</strong> ${today}</div>
+          ${row.aktenzeichen ? `<div><strong>Aktenzeichen:</strong> ${row.aktenzeichen}</div>` : ''}
         </div>
         
         <div class="a4-content">
@@ -1362,6 +1383,7 @@
     const payload = {
       debtor_name:              document.getElementById('debtor_name').value.trim() || 'Max Mustermann',
       creditor_name:            document.getElementById('creditor_name').value.trim() || 'Musterfirma GmbH',
+      aktenzeichen:             document.getElementById('aktenzeichen').value.trim(),
       amount:                   document.getElementById('amount').value.trim() || '2.400 €',
       invoice_date:             document.getElementById('invoice_date').value.trim() || '12.02.2025',
       due_date:                 document.getElementById('due_date').value.trim() || '26.02.2025',
@@ -1371,6 +1393,11 @@
       mention_default_interest: document.getElementById('mention_default_interest').checked,
       mention_legal_action:     document.getElementById('mention_legal_action').checked,
     };
+
+    // Auto-generate if not set manually in single mode
+    if (!payload.aktenzeichen) {
+        payload.aktenzeichen = getOrGenerateAktenzeichen(payload, 0);
+    }
 
     const templates = getActiveTemplates();
     let draftParts = [];
@@ -1432,7 +1459,9 @@
           
           el.style.transform = originalScale;
           
-          zip.file(`Mahnschreiben_${safeName}.pdf`, pdfBlob);
+          const filenameAz = item.payload ? item.payload.aktenzeichen : '';
+          const fullFilename = `Mahnschreiben_${filenameAz ? filenameAz + '_' : ''}${safeName}.pdf`;
+          zip.file(fullFilename, pdfBlob);
         }
 
         btn.textContent = 'Speichere ZIP...';
@@ -1461,9 +1490,12 @@
       btn.textContent = 'Wird generiert...';
       btn.disabled = true;
 
+      const filenameAz = payload.aktenzeichen || '';
+      const safeDebtor = payload.debtor_name.replace(/[^a-z0-9]/gi, '_');
+
       const opt = {
         margin:       0,
-        filename:     'Mahnschreiben.pdf',
+        filename:     `Mahnschreiben_${filenameAz ? filenameAz + '_' : ''}${safeDebtor}.pdf`,
         image:        { type: 'jpeg', quality: 0.98 },
         html2canvas:  { scale: 2, useCORS: true },
         jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
@@ -1516,6 +1548,12 @@
         }
       }
       return mappedRow;
+    });
+
+    // Ensure all rows have an aktenzeichen
+    payloadArray = payloadArray.map((row, index) => {
+      row.aktenzeichen = getOrGenerateAktenzeichen(row, index);
+      return row;
     });
 
     btn.disabled = true;

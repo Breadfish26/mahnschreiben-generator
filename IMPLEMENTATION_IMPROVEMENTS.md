@@ -69,3 +69,20 @@ Instead of just copying text to the clipboard, the user downloads a professional
 2. [x] We will start by building the UI for Phase 1 and 2, migrating the core assembly logic to the frontend to enable real-time previews.
 3. [x] Implement Media Uploads for Logo and Signature.
 4. [x] Build zip download logic for Batch Mode PDFs.
+
+---
+
+## 5. Phase 4: Aktenzeichen (File Reference) Support
+Integrate a first-class "Aktenzeichen" field to improve document tracking and professional organization.
+
+### UI/UX Updates
+- [ ] **Expected Field**: Add `aktenzeichen` to the list of expected fields for CSV mapping.
+- [ ] **Templates**: Add a `+ Aktenzeichen` chip in the template editor to insert `{{aktenzeichen}}`.
+- [ ] **Live Preview**: Display the Aktenzeichen in the "Informationsblock" (top right) of the DIN 5008 letterhead if present.
+
+### Technical Implementation
+- [ ] **CSV Mapping**: Add aliases for `aktenzeichen` (e.g., "akte", "az", "referenz", "vorgangsnummer").
+- [ ] **Auto-Generation**: Implement a fallback generator for missing Aktenzeichen in the format `AZ-YYYY-NNNN`.
+- [ ] **Template Engine**: Update `replaceTemplateTags()` to handle the new placeholder.
+- [ ] **PDF Naming**: Include the Aktenzeichen in the exported PDF filenames (e.g., `Mahnschreiben_AZ-2026-0001_Max_Mustermann.pdf`).
+- [ ] **Batch Logic**: Ensure every row in a batch gets an Aktenzeichen (either mapped or generated) before the PDF is created.
