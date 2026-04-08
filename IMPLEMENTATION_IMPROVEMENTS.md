@@ -76,13 +76,13 @@ Instead of just copying text to the clipboard, the user downloads a professional
 Integrate a first-class "Aktenzeichen" field to improve document tracking and professional organization.
 
 ### UI/UX Updates
-- [ ] **Expected Field**: Add `aktenzeichen` to the list of expected fields for CSV mapping.
-- [ ] **Templates**: Add a `+ Aktenzeichen` chip in the template editor to insert `{{aktenzeichen}}`.
-- [ ] **Live Preview**: Display the Aktenzeichen in the "Informationsblock" (top right) of the DIN 5008 letterhead if present.
+- [x] **Expected Field**: Add `aktenzeichen` to the list of expected fields for CSV mapping.
+- [x] **Templates**: Add a `+ Aktenzeichen` chip in the template editor to insert `{{aktenzeichen}}`.
+- [x] **Live Preview**: Display the Aktenzeichen in the "Informationsblock" (top right) of the DIN 5008 letterhead if present.
 
 ### Technical Implementation
-- [ ] **CSV Mapping**: Add aliases for `aktenzeichen` (e.g., "akte", "az", "referenz", "vorgangsnummer").
-- [ ] **Auto-Generation**: Implement a fallback generator for missing Aktenzeichen in the format `AZ-YYYY-NNNN`.
-- [ ] **Template Engine**: Update `replaceTemplateTags()` to handle the new placeholder.
-- [ ] **PDF Naming**: Include the Aktenzeichen in the exported PDF filenames (e.g., `Mahnschreiben_AZ-2026-0001_Max_Mustermann.pdf`).
-- [ ] **Batch Logic**: Ensure every row in a batch gets an Aktenzeichen (either mapped or generated) before the PDF is created.
+- [x] **CSV Mapping**: Add aliases for `aktenzeichen` (e.g., "akte", "az", "referenz", "vorgangsnummer").
+- [x] **Auto-Generation**: Implement a fallback generator for missing Aktenzeichen in the format `AZ-YYYY-NNNN`.
+- [x] **Template Engine**: Update `replaceTemplateTags()` to handle the new placeholder.
+- [x] **PDF Naming**: Include the Aktenzeichen in the exported PDF filenames (e.g., `Mahnschreiben_AZ-2026-0001_Max_Mustermann.pdf`).
+- [x] **Batch Logic**: Ensure every row in a batch gets an Aktenzeichen (either mapped or generated) before the PDF is created.

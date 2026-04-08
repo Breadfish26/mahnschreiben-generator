@@ -645,6 +645,18 @@
   .a4-footer-col { line-height: 1.4; }
   .a4-footer-col strong { color: var(--ink-soft); }
 
+  /* ── DIN 5008 Marks ── */
+  .a4-mark {
+    position: absolute;
+    left: 0;
+    width: 7mm;
+    border-top: 0.2pt solid rgba(26,26,24,0.3);
+    pointer-events: none;
+  }
+  .a4-mark-fold-1 { top: 87mm; }
+  .a4-mark-fold-2 { top: 192mm; }
+  .a4-mark-punch { top: 148.5mm; width: 10mm; border-top-width: 0.4pt; }
+
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
@@ -833,6 +845,17 @@
           <button type="button" id="sigRemoveBtn" class="btn-action" style="display: none; padding: 4px 8px; font-size: 10px; background: transparent; color: var(--red); border: 1px solid var(--red); cursor: pointer;" onclick="removeImage('sigImagePreview', 'sigData', 'sigRemoveBtn')">Entfernen</button>
         </div>
         <input type="hidden" id="sigData">
+      </div>
+    </div>
+
+    <div class="section-label">System-Einstellungen</div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Aktenzeichen Zähler</label>
+        <div style="display: flex; gap: 12px; align-items: center; background: var(--paper); padding: 8px 12px; border-radius: var(--radius); border: 1px solid var(--border);">
+          <span id="counter-display" style="font-size: 13px; font-family: monospace; color: var(--gold);">AZ-2026-0000</span>
+          <button type="button" class="btn-action" style="padding: 4px 10px; font-size: 10px; background: var(--white);" onclick="resetCounter()">Zurücksetzen</button>
+        </div>
       </div>
     </div>
     
@@ -1314,20 +1337,50 @@
 
   /**
    * Returns a valid aktenzeichen. Fallback to auto-generated if missing.
+   * Persists the counter in localStorage for premium continuity.
    */
   function getOrGenerateAktenzeichen(row, index = 0) {
     if (row.aktenzeichen && row.aktenzeichen.trim() !== '') {
       return row.aktenzeichen.trim();
     }
+    
     const year = new Date().getFullYear();
-    const num = String(index + 1).padStart(4, '0');
-    return `AZ-${year}-${num}`;
+    // Get last used counter for this year
+    let counterData = JSON.parse(localStorage.getItem('lexAzCounter') || '{}');
+    if (counterData.year !== year) {
+        counterData = { year: year, lastNum: 0 };
+    }
+    
+    // If it's a batch, we increment based on index. 
+    // If it's single mode, we increment the global counter.
+    // For simplicity in Phase 1, we use a session-based approach if index > 0 (batch),
+    // but we save the highest number reached.
+    
+    const currentNum = counterData.lastNum + index + 1;
+    const numStr = String(currentNum).padStart(4, '0');
+    
+    return `AZ-${year}-${numStr}`;
+  }
+
+  function commitAktenzeichenCounter(maxIndex) {
+    const year = new Date().getFullYear();
+    let counterData = JSON.parse(localStorage.getItem('lexAzCounter') || '{}');
+    if (counterData.year !== year) {
+        counterData = { year: year, lastNum: 0 };
+    }
+    counterData.lastNum += (maxIndex + 1);
+    localStorage.setItem('lexAzCounter', JSON.stringify(counterData));
   }
 
   function renderA4HTML(draftText, row, sender) {
     const today = new Date().toLocaleDateString('de-DE');
     return `
       <div class="a4-preview a4-pdf-root">
+        <!-- DIN Marks -->
+        <div class="a4-mark a4-mark-fold-1"></div>
+        <div class="a4-mark a4-mark-punch"></div>
+        <div class="a4-mark a4-mark-fold-2"></div>
+
         <div class="a4-header">
           <div class="a4-logo">${sender.logo ? `<img src="${sender.logo}" alt="Logo" style="max-height: 100%; max-width: 100%;">` : ''}</div>
         </div>
@@ -1377,6 +1430,27 @@
     `;
   }
 
+  function resetCounter() {
+    if (confirm('Möchten Sie den Aktenzeichen-Zähler für das aktuelle Jahr wirklich auf Null zurücksetzen?')) {
+        const year = new Date().getFullYear();
+        localStorage.setItem('lexAzCounter', JSON.stringify({ year: year, lastNum: 0 }));
+        updateCounterDisplay();
+        showToast('Zähler zurückgesetzt.');
+    }
+  }
+
+  function updateCounterDisplay() {
+    const year = new Date().getFullYear();
+    const data = JSON.parse(localStorage.getItem('lexAzCounter') || '{}');
+    const lastNum = data.year === year ? data.lastNum : 0;
+    const display = document.getElementById('counter-display');
+    if (display) {
+        display.textContent = `AZ-${year}-${String(lastNum).padStart(4, '0')}`;
+    }
+  }
+
+  let currentBatchResults = []; // Global store for batch data
+
   function updateLivePreview() {
     if (currentMode === 'batch') return;
 
@@ -1397,6 +1471,8 @@
     // Auto-generate if not set manually in single mode
     if (!payload.aktenzeichen) {
         payload.aktenzeichen = getOrGenerateAktenzeichen(payload, 0);
+        // Note: We don't commit counter here to avoid skipping numbers on every preview update.
+        // We only commit on EXPORT or BATCH generation.
     }
 
     const templates = getActiveTemplates();
@@ -1459,7 +1535,8 @@
           
           el.style.transform = originalScale;
           
-          const filenameAz = item.payload ? item.payload.aktenzeichen : '';
+          const batchItem = currentBatchResults[i];
+          const filenameAz = batchItem && batchItem.payload ? batchItem.payload.aktenzeichen : '';
           const fullFilename = `Mahnschreiben_${filenameAz ? filenameAz + '_' : ''}${safeName}.pdf`;
           zip.file(fullFilename, pdfBlob);
         }
@@ -1505,6 +1582,12 @@
       element.style.transform = 'none';
       
       html2pdf().set(opt).from(element).save().then(() => {
+        // If it was auto-generated, commit the counter
+        const val = document.getElementById('aktenzeichen').value.trim();
+        if (!val) {
+            commitAktenzeichenCounter(0);
+        }
+        
         element.style.transform = originalScale;
         btn.textContent = originalText;
         btn.disabled = false;
@@ -1556,13 +1639,16 @@
       return row;
     });
 
+    // Commit counter for batch
+    commitAktenzeichenCounter(payloadArray.length - 1);
+
     btn.disabled = true;
     btn.classList.add('loading');
 
     try {
       const templates = getActiveTemplates();
       const sender = JSON.parse(localStorage.getItem('lexSender') || 'null') || defaultSender;
-      const results = [];
+      currentBatchResults = []; 
 
       for (const row of payloadArray) {
         let draftParts = [];
@@ -1578,7 +1664,7 @@
 
         const draftText = draftParts.join('\n\n');
         
-        results.push({
+        currentBatchResults.push({
           debtor_name: row.debtor_name,
           draft: draftText,
           blocks_included: blocks,
@@ -1590,7 +1676,7 @@
       container.innerHTML = '';
       allDraftsText = '';
 
-      results.forEach((item, index) => {
+      currentBatchResults.forEach((item, index) => {
         const draftText = item.draft;
         const name = item.debtor_name || `Kunde ${index + 1}`;
         const blocks = item.blocks_included;
@@ -1616,7 +1702,7 @@
         container.appendChild(card);
       });
 
-      document.getElementById('batchCountBadge').textContent = `(${results.length} Dokument${results.length > 1 ? 'e' : ''})`;
+      document.getElementById('batchCountBadge').textContent = `(${currentBatchResults.length} Dokument${currentBatchResults.length > 1 ? 'e' : ''})`;
       document.getElementById('placeholder').style.display = 'none';
       document.getElementById('result').classList.add('visible');
 
