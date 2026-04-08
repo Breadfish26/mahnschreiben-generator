@@ -47,15 +47,15 @@ The UI must shift from "Invoice Data" to "Case Data".
 
 ---
 
-## Phase 3: High-Fidelity PDF Engine (DIN 5008+)
+## Phase 3: High-Fidelity PDF Engine (DIN 5008+) [DONE]
 The "Lex" preview needs to be replaced/augmented with the **CETI Corporate Identity**.
 
-### 3.1 Multi-Page Architecture
+### 3.1 Multi-Page Architecture [DONE]
 - **Header/Footer Overlays**: Static legal header (Attorney names, contact) applied to every page.
 - **Dynamic Content Flow**: Using a structured DOM approach where the main letter and the *Unterlassungserklärung* are separate pages within the same PDF export.
 - **Automatic Page Breaking**: Ensuring legal tables or bullet points are not cut off awkwardly.
 
-### 3.2 Visual Specifics (CETI Style)
+### 3.2 Visual Specifics (CETI Style) [DONE]
 - **Typography**: Inter/Roboto for body, Serif for branding.
 - **Grid**: 25mm left margin (punch mark align), 20mm right margin.
 - **Cost Table**: A formatted table for the breakdown of § 97 Abs. 2 UrhG claims.

@@ -637,25 +637,128 @@
     font-size: 7.5pt; 
     color: var(--ink-faint); 
     display: grid; 
-    grid-template-columns: repeat(4, 1fr); 
-    gap: 10mm;
-    border-top: 1px solid var(--paper-2); 
-    margin: 0 20mm 0 25mm; 
+    font-size: 10.5pt;
   }
-  .a4-footer-col { line-height: 1.4; }
-  .a4-footer-col strong { color: var(--ink-soft); }
 
-  /* ── DIN 5008 Marks ── */
+  .a4-logo-ceti {
+    position: absolute;
+    top: 15mm;
+    left: 25mm;
+    height: 15mm;
+  }
+
+  .a4-top-accent {
+    position: absolute;
+    top: 12mm;
+    left: 25mm;
+    width: 12mm;
+    height: 1.5mm;
+    background: #C5A059;
+  }
+
+  .a4-sidebar {
+    position: absolute;
+    top: 70mm;
+    right: 20mm;
+    width: 45mm;
+    font-size: 8.5pt;
+    color: #555;
+    line-height: 1.6;
+    border-left: 0.5px solid #eee;
+    padding-left: 5mm;
+  }
+
+  .a4-sidebar-title {
+    font-weight: 700;
+    color: #1A1A1A;
+    text-transform: uppercase;
+    font-size: 7.5pt;
+    letter-spacing: 0.05em;
+    margin-bottom: 2mm;
+    margin-top: 5mm;
+  }
+
+  .a4-address-window {
+    margin-top: 45mm;
+    height: 40mm;
+    width: 85mm;
+    font-size: 10pt;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  .a4-sender-address-small {
+    font-size: 8pt;
+    text-decoration: underline;
+    margin-bottom: 4mm;
+    color: #333;
+  }
+
+  .a4-address-text {
+    white-space: pre-wrap;
+    line-height: 1.4;
+  }
+
+  .a4-info-block {
+    margin-top: 10mm;
+    margin-left: 120mm;
+    font-size: 9pt;
+    line-height: 1.6;
+  }
+
+  .a4-subject {
+    margin-top: 15mm;
+    margin-bottom: 8mm;
+    font-weight: 700;
+    font-size: 12pt;
+    color: #1A1A1A;
+  }
+
+  .a4-body-text {
+    white-space: pre-wrap;
+    min-height: 100mm;
+  }
+
+  .a4-footer {
+    position: absolute;
+    bottom: 15mm;
+    left: 25mm;
+    right: 20mm;
+    display: grid;
+    grid-template-columns: 1fr 1.5fr 1fr;
+    gap: 10mm;
+    font-size: 7pt;
+    color: #777;
+    border-top: 0.5px solid #eee;
+    padding-top: 5mm;
+  }
+
+  .a4-footer strong {
+    color: #333;
+    font-size: 7.5pt;
+  }
+
+  .a4-footer-col {
+    line-height: 1.6;
+  }
+
   .a4-mark {
     position: absolute;
     left: 0;
-    width: 7mm;
-    border-top: 0.2pt solid rgba(26,26,24,0.3);
+    width: 4mm;
+    height: 0.2mm;
+    background: #ddd;
     pointer-events: none;
   }
   .a4-mark-fold-1 { top: 87mm; }
   .a4-mark-fold-2 { top: 192mm; }
-  .a4-mark-punch { top: 148.5mm; width: 10mm; border-top-width: 0.4pt; }
+  .a4-mark-punch  { top: 148.5mm; width: 6mm; }
+
+  @media print {
+    .a4-container { background: white; padding: 0; shadow: none; }
+    .a4-preview { box-shadow: none; margin: 0; border: none; }
+  }
 
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
@@ -1627,6 +1730,8 @@
 
   function renderA4HTML(draftText, row, sender) {
     const today = new Date().toLocaleDateString('de-DE');
+    const isCeti = document.getElementById('case_type')?.value?.startsWith('copyright');
+    
     return `
       <div class="a4-preview a4-pdf-root">
         <!-- DIN Marks -->
@@ -1634,49 +1739,73 @@
         <div class="a4-mark a4-mark-punch"></div>
         <div class="a4-mark a4-mark-fold-2"></div>
 
-        <div class="a4-header">
-          <div class="a4-logo">${sender.logo ? `<img src="${sender.logo}" alt="Logo" style="max-height: 100%; max-width: 100%;">` : ''}</div>
-        </div>
+        <!-- CETI Header Branding -->
+        ${isCeti ? `
+          <div class="a4-top-accent"></div>
+          <div class="a4-logo-ceti">
+            <svg width="160" height="45" viewBox="0 0 160 45" xmlns="http://www.w3.org/2000/svg">
+              <text x="0" y="38" font-family="Inter, -apple-system, sans-serif" font-weight="900" font-size="34" fill="#1A1A1A" letter-spacing="-1.5">CETI</text>
+            </svg>
+          </div>
+          <div class="a4-sidebar">
+            <div class="a4-sidebar-title">Kanzlei</div>
+            ${sender.name || 'Daniel Grosche'}<br>
+            ${sender.street || 'Mustergasse 7'}<br>
+            ${sender.zip || '12345'} ${sender.city || 'Frankfurt'}
+            
+            <div class="a4-sidebar-title">Direktkontakt</div>
+            T: ${sender.phone || '+49 123 45678'}<br>
+            M: ${sender.email || 'mail@ceti.legal'}<br>
+            W: ${sender.website || 'www.ceti.legal'}
+            
+            <div class="a4-sidebar-title">Ihr Fall</div>
+            Ref: ${row.aktenzeichen || '-'}<br>
+            Gegner: ${row.gegner_akte_zeichen || '-'}
+          </div>
+        ` : `
+          <div style="position: absolute; top: 15mm; right: 20mm; height: 15mm;">
+            ${sender.logo ? `<img src="${sender.logo}" alt="Logo" style="max-height: 100%; max-width: 40mm; object-fit: contain;">` : ''}
+          </div>
+        `}
         
         <div class="a4-address-window">
-          <div class="a4-sender-address-small">${sender.name || 'Absender'}, ${sender.street || 'Straße'}, ${sender.zip || 'PLZ'} ${sender.city || 'Ort'}</div>
-          <div class="a4-address-text">${row.debtor_vorname ? row.debtor_vorname + ' ' : ''}${row.debtor_name || 'Max Mustermann'}\n${row.debtor_street || 'Musterstraße 1'}\n${row.debtor_zip || '12345'} ${row.debtor_city || 'Musterstadt'}</div>
+          <div class="a4-sender-address-small">${sender.name || 'Absender'}, ${sender.city || 'Ort'}</div>
+          <div class="a4-address-text">${row.debtor_titel || ''} ${row.debtor_vorname?row.debtor_vorname+' ':''}${row.debtor_name || ''}\n${row.debtor_street || ''}\n${row.debtor_zip || ''} ${row.debtor_city || ''}</div>
         </div>
         
         <div class="a4-info-block">
-          <div><strong>Datum:</strong> ${today}</div>
-          ${row.aktenzeichen ? `<div><strong>Aktenzeichen:</strong> ${row.aktenzeichen}</div>` : ''}
+          <div>${sender.city || 'Frankfurt'}, den ${today}</div>
         </div>
         
         <div class="a4-content">
-          <div class="a4-subject">Zahlungsaufforderung / Mahnung</div>
-          <div class="a4-body-text">${draftText.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</div>
-          <div class="a4-signature">
-            ${sender.signature ? `<img src="${sender.signature}" alt="Unterschrift" style="max-width: 150px; max-height: 60px; object-fit: contain; margin-bottom: 5px;">` : ''}
+          <div class="a4-subject">${row.akte_kurzrubrum ? `${row.akte_kurzrubrum}<br>` : ''}${row.case_type === 'standard' ? 'Zahlungsaufforderung' : 'Abmahnung wegen Urheberrechtsverletzung'}</div>
+          
+          <div class="a4-body-text">${draftText.replace(/\n\n/g, '<div style="margin-bottom: 5mm;"></div>').replace(/\n/g, '<br>')}</div>
+          
+          <div class="a4-signature" style="margin-top: 10mm;">
+            ${sender.signature ? `<img src="${sender.signature}" alt="Unterschrift" style="max-width: 150px; max-height: 60px; object-fit: contain; display: block; margin-bottom: 5px;">` : ''}
+            ${sender.name || 'Rechtsanwalt Daniel Grosche'}
           </div>
         </div>
         
         <div class="a4-footer">
           <div class="a4-footer-col">
-            <strong>${sender.name || 'Firma'}</strong><br>
+            <strong>Kanzlei Details</strong><br>
+            ${sender.name || 'Daniel Grosche'}<br>
             ${sender.street || 'Straße'}<br>
             ${sender.zip || 'PLZ'} ${sender.city || 'Ort'}
           </div>
           <div class="a4-footer-col">
-            <strong>Kontakt</strong><br>
-            ${sender.email || 'email@example.com'}<br>
-            ${sender.website || 'www.example.com'}
-          </div>
-          <div class="a4-footer-col">
             <strong>Bankverbindung</strong><br>
-            ${sender.bank || 'Bank'}<br>
-            IBAN: ${sender.iban || 'DE00...'}<br>
-            BIC: ${sender.bic || 'XXX'}
+            ${sender.bank || 'Bank Name'}<br>
+            IBAN: ${sender.iban || 'DE00 0000 0000 0000'}<br>
+            BIC: ${sender.bic || 'XXXXXXXX'}
           </div>
           <div class="a4-footer-col">
-            <strong>Register</strong><br>
-            ${sender.hrb || 'HRB XXX'}<br>
-            Geschäftsführer: ${sender.ceo || 'Max Muster'}
+             <strong>Rechtliches</strong><br>
+             St.-Nr: ${sender.tax_id || '123/456/789'}<br>
+             HRB: ${sender.hrb || '-'}<br>
+             RA-Kammer: Frankfurt am Main
           </div>
         </div>
       </div>
