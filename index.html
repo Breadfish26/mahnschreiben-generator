@@ -402,6 +402,7 @@
     white-space: nowrap;
   }
   .toast.show { transform: translateX(-50%) translateY(0); }
+  .toast.success { background: #27ae60; }
 
   /* ── Section dividers ── */
   .form-section { margin-bottom: 32px; }
@@ -486,7 +487,7 @@
   /* ── Templates UI ── */
   .template-textarea {
     width: 100%;
-    height: 70px;
+    min-height: 70px;
     padding: 10px 14px;
     border: 1px solid var(--border);
     border-radius: var(--radius);
@@ -494,9 +495,10 @@
     font-size: 13px;
     color: var(--ink);
     background: var(--paper);
-    resize: vertical;
     outline: none;
+    overflow-y: auto;
     transition: all 0.2s;
+    line-height: 1.6;
   }
   .template-textarea:focus {
     border-color: var(--gold);
@@ -540,8 +542,114 @@
     border-color: var(--gold);
     background: var(--white);
   }
+
+  /* ── Variable Chips ── */
+  .chip-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 10px;
+  }
+  .chip-btn {
+    background: var(--paper-2);
+    color: var(--ink-soft);
+    border: 1px solid var(--border);
+    padding: 6px 12px;
+    border-radius: 14px;
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: inherit;
+  }
+  .chip-btn:hover {
+    background: var(--gold);
+    color: var(--white);
+    border-color: var(--gold);
+  }
+
+  .inline-chip {
+    display: inline-block;
+    background: var(--paper-2);
+    color: var(--ink-soft);
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 500;
+    margin: 0 2px;
+    user-select: all;
+    border: 1px solid var(--border);
+    vertical-align: text-bottom;
+  }
+
+  /* ── DIN 5008 A4 Preview ── */
+  .a4-container {
+    width: 100%;
+    overflow-x: auto;
+    background: var(--border);
+    padding: 32px;
+    border-radius: var(--radius);
+    display: flex;
+    justify-content: center;
+    margin-bottom: 24px;
+    box-shadow: inset 0 2px 10px rgba(0,0,0,0.05);
+  }
+
+  .a4-preview {
+    background: white;
+    width: 210mm;
+    min-height: 297mm;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.1);
+    position: relative;
+    font-family: 'DM Sans', sans-serif;
+    color: var(--ink);
+    font-size: 11pt;
+    line-height: 1.5;
+    padding: 0;
+    box-sizing: border-box;
+    flex-shrink: 0;
+    margin: 0 auto;
+  }
+
+  @media (max-width: 1400px) {
+    .a4-preview { transform: scale(0.85); transform-origin: top center; margin-bottom: -44mm; }
+  }
+  @media (max-width: 1100px) {
+    .a4-preview { transform: scale(0.7); transform-origin: top center; margin-bottom: -89mm; }
+  }
+
+  .a4-header { padding: 20mm 20mm 0 25mm; height: 35mm; display: flex; justify-content: space-between; align-items: flex-start; }
+  .a4-logo { max-width: 180px; max-height: 50px; object-fit: contain; }
+  .a4-sender-address-small { font-size: 7.5pt; text-decoration: underline; margin-bottom: 5mm; color: var(--ink-faint); }
+  .a4-address-window { position: absolute; top: 35mm; left: 25mm; width: 85mm; height: 45mm; }
+  .a4-info-block { position: absolute; top: 35mm; right: 20mm; width: 75mm; font-size: 9pt; }
+  .a4-content { padding: 80mm 20mm 20mm 25mm; font-family: 'Playfair Display', serif; }
+  .a4-subject { font-weight: bold; margin-bottom: 12px; font-size: 12pt; font-family: 'DM Sans', sans-serif; }
+  .a4-body-text { white-space: pre-wrap; font-size: 11pt; }
+  .a4-signature { margin-top: 20mm; }
+  .a4-signature img { max-width: 150px; max-height: 60px; object-fit: contain; margin-bottom: 5px; }
+  .a4-footer { 
+    position: absolute; 
+    bottom: 0; 
+    left: 0; 
+    right: 0; 
+    padding: 8mm 20mm 12mm 25mm; 
+    font-size: 7.5pt; 
+    color: var(--ink-faint); 
+    display: grid; 
+    grid-template-columns: repeat(4, 1fr); 
+    gap: 10mm;
+    border-top: 1px solid var(--paper-2); 
+    margin: 0 20mm 0 25mm; 
+  }
+  .a4-footer-col { line-height: 1.4; }
+  .a4-footer-col strong { color: var(--ink-soft); }
+
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
 </head>
 <body>
 
@@ -560,6 +668,7 @@
     <button class="tab-btn active" id="tab-single" onclick="switchMode('single')">Einzelner Eintrag</button>
     <button class="tab-btn" id="tab-batch" onclick="switchMode('batch')">CSV Batch Upload</button>
     <button class="tab-btn" id="tab-templates" onclick="switchMode('templates')">Textbausteine</button>
+    <button class="tab-btn" id="tab-sender" onclick="switchMode('sender')">Absender & Briefkopf</button>
   </div>
 
   <div id="batch-mode" style="display: none; margin-bottom: 32px;">
@@ -570,8 +679,15 @@
       <input type="file" id="csvFile" accept=".csv" style="display: none;" onchange="handleFileSelect(this.files)" />
     </div>
     <p style="font-size: 11px; color: var(--ink-faint); margin-top: 12px; line-height: 1.5;">
-      Pflichtspalten: debtor_name, creditor_name, amount, invoice_date, due_date<br>
-      Optionale Spalten: deadline_date, prior_reminder_sent, add_final_deadline, mention_default_interest, mention_legal_action
+      Laden Sie Ihre Tabelle hoch. Im nächsten Schritt können Sie Ihre eigenen Spalten ganz einfach den benötigten Feldern zuordnen.<br>
+      <span style="display:inline-block; margin-top: 8px;">
+        <strong>Benötigt:</strong>
+        <span style="background:var(--paper-2); color:var(--ink-soft); padding: 3px 8px; border-radius: 4px; margin-left: 4px;">Gläubiger</span>
+        <span style="background:var(--paper-2); color:var(--ink-soft); padding: 3px 8px; border-radius: 4px; margin-left: 2px;">Schuldner</span>
+        <span style="background:var(--paper-2); color:var(--ink-soft); padding: 3px 8px; border-radius: 4px; margin-left: 2px;">Betrag</span>
+        <span style="background:var(--paper-2); color:var(--ink-soft); padding: 3px 8px; border-radius: 4px; margin-left: 2px;">Rechnungsdatum</span>
+        <span style="background:var(--paper-2); color:var(--ink-soft); padding: 3px 8px; border-radius: 4px; margin-left: 2px;">Fälligkeitsdatum</span>
+      </span>
     </p>
 
     <div id="mapping-section" style="display: none; margin-top: 24px;">
@@ -585,41 +701,141 @@
 
   <div id="templates-mode" style="display: none; margin-bottom: 32px;">
     <div class="section-label">Vorlagen bearbeiten</div>
-    <p style="font-size: 11px; color: var(--ink-faint); margin-bottom: 24px; line-height: 1.5;">
-      Verwenden Sie Variablen in doppelten geschweiften Klammern (z.B. {{amount}} oder {{debtor_name}}), um dynamische Inhalte einzufügen.<br>
-      <span style="color: var(--gold);">Variablen: {{debtor_name}}, {{creditor_name}}, {{amount}}, {{invoice_date}}, {{due_date}}, {{deadline_date}}</span>
-    </p>
+    <div style="margin-bottom: 24px;">
+      <p style="font-size: 11px; color: var(--ink-faint); line-height: 1.5;">
+        Klicken Sie auf einen Platzhalter, um ihn an der aktuellen Stelle in Ihrem Text einzufügen:
+      </p>
+      <div class="chip-group">
+        <button type="button" class="chip-btn" onclick="insertVariable('{{creditor_name}}', 'Gläubiger')" title="Gläubiger einfügen">+ Gläubiger</button>
+        <button type="button" class="chip-btn" onclick="insertVariable('{{debtor_name}}', 'Schuldner')" title="Schuldner einfügen">+ Schuldner</button>
+        <button type="button" class="chip-btn" onclick="insertVariable('{{amount}}', 'Betrag')" title="Betrag einfügen">+ Betrag</button>
+        <button type="button" class="chip-btn" onclick="insertVariable('{{invoice_date}}', 'Rechnungsdatum')" title="Rechnungsdatum einfügen">+ Rechnungsdatum</button>
+        <button type="button" class="chip-btn" onclick="insertVariable('{{due_date}}', 'Fälligkeit')" title="Fälligkeit einfügen">+ Fälligkeit</button>
+        <button type="button" class="chip-btn" onclick="insertVariable('{{deadline_date}}', 'Fristdatum')" title="Fristdatum einfügen">+ Fristdatum</button>
+      </div>
+    </div>
 
     <div class="form-group">
       <label>Einleitung</label>
-      <textarea class="template-textarea" id="tpl_intro"></textarea>
+      <div class="template-textarea" contenteditable="true" id="tpl_intro"></div>
     </div>
     <div class="form-group">
       <label>Rechnungshinweis (Hauptteil)</label>
-      <textarea class="template-textarea" id="tpl_body"></textarea>
+      <div class="template-textarea" contenteditable="true" id="tpl_body"></div>
     </div>
     <div class="form-group">
       <label>Mahngebühren / Zinsen</label>
-      <textarea class="template-textarea" id="tpl_fees"></textarea>
+      <div class="template-textarea" contenteditable="true" id="tpl_fees"></div>
     </div>
     <div class="form-group">
       <label>Erinnerungskontext (Wenn Erinnerung bereits gesendet)</label>
-      <textarea class="template-textarea" id="tpl_reminder"></textarea>
+      <div class="template-textarea" contenteditable="true" id="tpl_reminder"></div>
     </div>
     <div class="form-group">
       <label>Letzte Frist</label>
-      <textarea class="template-textarea" id="tpl_deadline"></textarea>
+      <div class="template-textarea" contenteditable="true" id="tpl_deadline"></div>
     </div>
     <div class="form-group">
       <label>Klageandrohung</label>
-      <textarea class="template-textarea" id="tpl_legal"></textarea>
+      <div class="template-textarea" contenteditable="true" id="tpl_legal"></div>
     </div>
     <div class="form-group">
       <label>Grußformel</label>
-      <textarea class="template-textarea" id="tpl_closing"></textarea>
+      <div class="template-textarea" contenteditable="true" id="tpl_closing"></div>
     </div>
     
     <button class="btn-action btn-print" onclick="saveTemplates()" style="width: 100%; padding: 12px; margin-top: 10px;">Vorlagen Speichern</button>
+  </div>
+
+  <div id="sender-mode" style="display: none; margin-bottom: 32px;">
+    <div class="section-label">Absender Details</div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Name / Firma</label>
+        <input type="text" id="sender_name" placeholder="Rechtsanwälte Müller & Partner">
+      </div>
+      <div class="form-group">
+        <label>Straße</label>
+        <input type="text" id="sender_street" placeholder="Kanzleistraße 1">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>PLZ</label>
+        <input type="text" id="sender_zip" placeholder="10115">
+      </div>
+      <div class="form-group">
+        <label>Ort</label>
+        <input type="text" id="sender_city" placeholder="Berlin">
+      </div>
+    </div>
+
+    <div class="section-label">Bankverbindung</div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>IBAN</label>
+        <input type="text" id="sender_iban" placeholder="DE12 3456 7890 1234 5678 90">
+      </div>
+      <div class="form-group">
+        <label>BIC</label>
+        <input type="text" id="sender_bic" placeholder="GENODEF1BRL">
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Kreditinstitut</label>
+      <input type="text" id="sender_bank" placeholder="Berliner Volksbank">
+    </div>
+
+    <div class="section-label">Unternehmensinfos (Fußzeile)</div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Geschäftsführer</label>
+        <input type="text" id="sender_ceo" placeholder="Dr. Hans Müller">
+      </div>
+      <div class="form-group">
+        <label>HRB / Register</label>
+        <input type="text" id="sender_hrb" placeholder="HRB 12345 B">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>E-Mail</label>
+        <input type="text" id="sender_email" placeholder="info@kanzlei-mueller.de">
+      </div>
+      <div class="form-group">
+        <label>Website</label>
+        <input type="text" id="sender_website" placeholder="www.kanzlei-mueller.de">
+      </div>
+    </div>
+    <div class="section-label">Media (Bilder)</div>
+    <div class="form-row">
+      <div class="form-group" style="flex: 1;">
+        <label>Logo (Kopfzeile)</label>
+        <div class="drop-zone" id="logo-drop-zone" style="padding: 16px; min-height: 80px;" onclick="document.getElementById('logoFile').click()">
+          <span style="font-size: 11px; color: var(--ink-faint);">Bild hier ablegen oder<br>klicken</span>
+          <input type="file" id="logoFile" accept="image/*" style="display: none;" onchange="handleImageUpload(this, 'logoImagePreview', 'logoData', 'logoRemoveBtn')">
+        </div>
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 8px;">
+          <img id="logoImagePreview" style="max-width: 70%; max-height: 50px; display: none; object-fit: contain;">
+          <button type="button" id="logoRemoveBtn" class="btn-action" style="display: none; padding: 4px 8px; font-size: 10px; background: transparent; color: var(--red); border: 1px solid var(--red); cursor: pointer;" onclick="removeImage('logoImagePreview', 'logoData', 'logoRemoveBtn')">Entfernen</button>
+        </div>
+        <input type="hidden" id="logoData">
+      </div>
+      <div class="form-group" style="flex: 1;">
+        <label>Unterschrift</label>
+        <div class="drop-zone" id="sig-drop-zone" style="padding: 16px; min-height: 80px;" onclick="document.getElementById('sigFile').click()">
+          <span style="font-size: 11px; color: var(--ink-faint);">Bild hier ablegen oder<br>klicken</span>
+          <input type="file" id="sigFile" accept="image/*" style="display: none;" onchange="handleImageUpload(this, 'sigImagePreview', 'sigData', 'sigRemoveBtn')">
+        </div>
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 8px;">
+          <img id="sigImagePreview" style="max-width: 70%; max-height: 50px; display: none; object-fit: contain;">
+          <button type="button" id="sigRemoveBtn" class="btn-action" style="display: none; padding: 4px 8px; font-size: 10px; background: transparent; color: var(--red); border: 1px solid var(--red); cursor: pointer;" onclick="removeImage('sigImagePreview', 'sigData', 'sigRemoveBtn')">Entfernen</button>
+        </div>
+        <input type="hidden" id="sigData">
+      </div>
+    </div>
+    
+    <button class="btn-action btn-print" onclick="saveSenderSettings()" style="width: 100%; padding: 12px; margin-top: 24px;">Absender Speichern</button>
   </div>
 
   <div id="single-mode">
@@ -706,7 +922,7 @@
   </div> <!-- closing single-mode -->
 
   <button class="btn-generate" id="generateBtn" onclick="generateLetter()">
-    <span class="btn-text">Mahnschreiben generieren</span>
+    <span class="btn-text">Batch CSV generieren</span>
     <span class="btn-loading"><div class="spinner"></div></span>
   </button>
 
@@ -714,22 +930,23 @@
 
 <!-- RIGHT: Output -->
 <div class="panel-output">
-  <div class="section-label">Entwurf</div>
+  <div class="section-label">Echtzeit-Vorschau</div>
 
   <div class="output-placeholder" id="placeholder">
     <div class="output-placeholder-icon">§</div>
-    <p>Füllen Sie das Formular aus und klicken Sie auf „Generieren".</p>
+    <p>Geben Sie links Daten ein, um eine Live-Vorschau des Mahnschreibens zu sehen.</p>
   </div>
 
   <div class="output-result" id="result">
     <div class="output-meta">
-      <span class="output-meta-label">Fertig <span id="batchCountBadge" style="margin-left: 8px; color: var(--ink);"></span></span>
+      <span class="output-meta-label">Output <span id="batchCountBadge" style="margin-left: 8px; color: var(--ink);"></span></span>
       <div class="output-actions">
-        <button class="btn-action btn-copy" onclick="copyDraft()">Alle Kopieren</button>
-        <button class="btn-action btn-print" onclick="window.print()">Drucken</button>
+        <button class="btn-action btn-copy" id="btnCopyAll" onclick="copyDraft()">Alle Kopieren</button>
+        <button class="btn-action btn-print" onclick="exportPDF()">Als PDF Download</button>
       </div>
     </div>
-    <div id="draftContainer"></div>
+    <div id="livePreviewContainer"></div>
+    <div id="draftContainer" style="display:none;"></div>
   </div>
 </div>
 
@@ -740,6 +957,44 @@
   let allDraftsText = '';
   let uploadedCSVData = null;
   let uploadedCSVHeaders = [];
+
+  // Track the last focused template textarea for variable insertion
+  let lastFocusedTemplate = null;
+
+  document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('.template-textarea').forEach(ta => {
+      ta.addEventListener('focus', () => lastFocusedTemplate = ta);
+      ta.addEventListener('click', () => lastFocusedTemplate = ta);
+      ta.addEventListener('keyup', () => { lastFocusedTemplate = ta; updateLivePreview(); });
+    });
+    
+    document.querySelectorAll('.panel-form input, .panel-form select').forEach(input => {
+      input.addEventListener('input', updateLivePreview);
+      input.addEventListener('change', updateLivePreview);
+    });
+
+    loadTemplates();
+    loadSenderSettings();
+    
+    // Initial live preview render
+    setTimeout(updateLivePreview, 100);
+  });
+
+  function insertVariable(variable, label) {
+    const ta = lastFocusedTemplate || document.getElementById('tpl_body');
+    if (!ta) return;
+    
+    ta.focus();
+    const chipHtml = `&nbsp;<span class="inline-chip" contenteditable="false" data-var="${variable}">${label}</span>&nbsp;`;
+    document.execCommand('insertHTML', false, chipHtml);
+    
+    ta.style.borderColor = 'var(--gold)';
+    ta.style.background = 'var(--white)';
+    setTimeout(() => {
+      ta.style.borderColor = '';
+      ta.style.background = '';
+    }, 200);
+  }
 
   const EXPECTED_FIELDS = [
     { key: 'creditor_name', label: 'Gläubiger (Pflicht)' },
@@ -764,29 +1019,62 @@
     closing: "Mit freundlichen Grüßen"
   };
 
+  const VAR_MAP = {
+    '{{creditor_name}}': 'Gläubiger',
+    '{{debtor_name}}': 'Schuldner',
+    '{{amount}}': 'Betrag',
+    '{{invoice_date}}': 'Rechnungsdatum',
+    '{{due_date}}': 'Fälligkeitsdatum',
+    '{{deadline_date}}': 'Fristdatum'
+  };
+
+  function textToHtml(text) {
+    if (!text) return '';
+    let html = text.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    html = html.replace(/\n/g, "<br>");
+    for (const [v, label] of Object.entries(VAR_MAP)) {
+      const rawRegex = new RegExp(v.replace(/[{}]/g, '\\$&'), 'g');
+      html = html.replace(rawRegex, `<span class="inline-chip" contenteditable="false" data-var="${v}">${label}</span>`);
+    }
+    return html;
+  }
+
+  function htmlToText(el) {
+    const clone = el.cloneNode(true);
+    clone.querySelectorAll('.inline-chip').forEach(chip => {
+      chip.replaceWith(document.createTextNode(chip.getAttribute('data-var')));
+    });
+    clone.querySelectorAll('br').forEach(b => b.replaceWith('\\n'));
+    clone.querySelectorAll('div, p').forEach(d => {
+      d.prepend('\\n');
+      d.replaceWith(...d.childNodes);
+    });
+    return clone.textContent.trim();
+  }
+
   function loadTemplates() {
     const saved = JSON.parse(localStorage.getItem('lexTemplates') || 'null') || defaultTemplates;
-    document.getElementById('tpl_intro').value = saved.intro;
-    document.getElementById('tpl_body').value = saved.body;
-    document.getElementById('tpl_fees').value = saved.fees;
-    document.getElementById('tpl_reminder').value = saved.reminder;
-    document.getElementById('tpl_deadline').value = saved.deadline;
-    document.getElementById('tpl_legal').value = saved.legal;
-    document.getElementById('tpl_closing').value = saved.closing;
+    document.getElementById('tpl_intro').innerHTML = textToHtml(saved.intro);
+    document.getElementById('tpl_body').innerHTML = textToHtml(saved.body);
+    document.getElementById('tpl_fees').innerHTML = textToHtml(saved.fees);
+    document.getElementById('tpl_reminder').innerHTML = textToHtml(saved.reminder);
+    document.getElementById('tpl_deadline').innerHTML = textToHtml(saved.deadline);
+    document.getElementById('tpl_legal').innerHTML = textToHtml(saved.legal);
+    document.getElementById('tpl_closing').innerHTML = textToHtml(saved.closing);
   }
 
   function saveTemplates() {
     const tpls = {
-      intro: document.getElementById('tpl_intro').value,
-      body: document.getElementById('tpl_body').value,
-      fees: document.getElementById('tpl_fees').value,
-      reminder: document.getElementById('tpl_reminder').value,
-      deadline: document.getElementById('tpl_deadline').value,
-      legal: document.getElementById('tpl_legal').value,
-      closing: document.getElementById('tpl_closing').value
+      intro: htmlToText(document.getElementById('tpl_intro')),
+      body: htmlToText(document.getElementById('tpl_body')),
+      fees: htmlToText(document.getElementById('tpl_fees')),
+      reminder: htmlToText(document.getElementById('tpl_reminder')),
+      deadline: htmlToText(document.getElementById('tpl_deadline')),
+      legal: htmlToText(document.getElementById('tpl_legal')),
+      closing: htmlToText(document.getElementById('tpl_closing'))
     };
     localStorage.setItem('lexTemplates', JSON.stringify(tpls));
-    showToast('Vorlagen erfolgreich gespeichert.');
+    showToast('Vorlagen erfolgreich gespeichert.', 'success');
   }
 
   function getActiveTemplates() {
@@ -798,12 +1086,120 @@
     document.getElementById('tab-single').classList.toggle('active', mode === 'single');
     document.getElementById('tab-batch').classList.toggle('active', mode === 'batch');
     document.getElementById('tab-templates').classList.toggle('active', mode === 'templates');
+    document.getElementById('tab-sender').classList.toggle('active', mode === 'sender');
     
     document.getElementById('single-mode').style.display = mode === 'single' ? 'block' : 'none';
     document.getElementById('batch-mode').style.display = mode === 'batch' ? 'block' : 'none';
     document.getElementById('templates-mode').style.display = mode === 'templates' ? 'block' : 'none';
+    document.getElementById('sender-mode').style.display = mode === 'sender' ? 'block' : 'none';
     
-    document.getElementById('generateBtn').style.display = mode === 'templates' ? 'none' : 'block';
+    document.getElementById('generateBtn').style.display = mode === 'batch' ? 'block' : 'none';
+    
+    if (mode === 'batch') {
+      document.getElementById('livePreviewContainer').style.display = 'none';
+      document.getElementById('draftContainer').style.display = 'block';
+      document.getElementById('btnCopyAll').style.display = 'inline-block';
+      document.getElementById('result').classList.toggle('visible', document.getElementById('draftContainer').innerHTML.trim() !== '');
+      document.getElementById('placeholder').style.display = document.getElementById('draftContainer').innerHTML.trim() !== '' ? 'none' : 'flex';
+    } else {
+      document.getElementById('draftContainer').style.display = 'none';
+      document.getElementById('livePreviewContainer').style.display = 'block';
+      document.getElementById('btnCopyAll').style.display = 'none';
+      updateLivePreview();
+    }
+  }
+
+  const defaultSender = {
+    name: "Musterfirma GmbH",
+    street: "Musterstraße 1",
+    zip: "12345",
+    city: "Musterstadt",
+    iban: "",
+    bic: "",
+    bank: "",
+    ceo: "",
+    hrb: "",
+    email: "",
+    website: ""
+  };
+
+  function loadSenderSettings() {
+    const saved = JSON.parse(localStorage.getItem('lexSender') || 'null') || defaultSender;
+    document.getElementById('sender_name').value = saved.name || '';
+    document.getElementById('sender_street').value = saved.street || '';
+    document.getElementById('sender_zip').value = saved.zip || '';
+    document.getElementById('sender_city').value = saved.city || '';
+    document.getElementById('sender_iban').value = saved.iban || '';
+    document.getElementById('sender_bic').value = saved.bic || '';
+    document.getElementById('sender_bank').value = saved.bank || '';
+    document.getElementById('sender_ceo').value = saved.ceo || '';
+    document.getElementById('sender_hrb').value = saved.hrb || '';
+    document.getElementById('sender_email').value = saved.email || '';
+    document.getElementById('sender_website').value = saved.website || '';
+    
+    if (saved.logo) {
+      document.getElementById('logoData').value = saved.logo;
+      document.getElementById('logoImagePreview').src = saved.logo;
+      document.getElementById('logoImagePreview').style.display = 'block';
+      document.getElementById('logoRemoveBtn').style.display = 'block';
+    }
+    if (saved.signature) {
+      document.getElementById('sigData').value = saved.signature;
+      document.getElementById('sigImagePreview').src = saved.signature;
+      document.getElementById('sigImagePreview').style.display = 'block';
+      document.getElementById('sigRemoveBtn').style.display = 'block';
+    }
+  }
+
+  function saveSenderSettings() {
+    const data = {
+      name: document.getElementById('sender_name').value,
+      street: document.getElementById('sender_street').value,
+      zip: document.getElementById('sender_zip').value,
+      city: document.getElementById('sender_city').value,
+      iban: document.getElementById('sender_iban').value,
+      bic: document.getElementById('sender_bic').value,
+      bank: document.getElementById('sender_bank').value,
+      ceo: document.getElementById('sender_ceo').value,
+      hrb: document.getElementById('sender_hrb').value,
+      email: document.getElementById('sender_email').value,
+      website: document.getElementById('sender_website').value,
+      logo: document.getElementById('logoData').value,
+      signature: document.getElementById('sigData').value
+    };
+    try {
+      localStorage.setItem('lexSender', JSON.stringify(data));
+      showToast('Absender erfolgreich gespeichert.', 'success');
+    } catch (e) {
+      showToast('Fehler beim Speichern. Bild zu groß?', 'error');
+    }
+  }
+
+  function handleImageUpload(input, previewId, hiddenId, btnId) {
+    if (input.files && input.files[0]) {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        document.getElementById(previewId).src = e.target.result;
+        document.getElementById(previewId).style.display = 'block';
+        document.getElementById(hiddenId).value = e.target.result;
+        document.getElementById(btnId).style.display = 'block';
+        updateLivePreview();
+      }
+      reader.readAsDataURL(input.files[0]);
+    }
+  }
+
+  function removeImage(previewId, hiddenId, btnId) {
+    document.getElementById(previewId).src = '';
+    document.getElementById(previewId).style.display = 'none';
+    document.getElementById(hiddenId).value = '';
+    document.getElementById(btnId).style.display = 'none';
+    
+    // Clear the file input so it can trigger onchange if the same file is uploaded again
+    if(hiddenId === 'logoData') document.getElementById('logoFile').value = '';
+    if(hiddenId === 'sigData') document.getElementById('sigFile').value = '';
+    
+    updateLivePreview();
   }
 
   function toggleDeadline(cb) {
@@ -908,119 +1304,247 @@
     return text;
   }
 
+  function renderA4HTML(draftText, row, sender) {
+    const today = new Date().toLocaleDateString('de-DE');
+    return `
+      <div class="a4-preview a4-pdf-root">
+        <div class="a4-header">
+          <div class="a4-logo">${sender.logo ? `<img src="${sender.logo}" alt="Logo" style="max-height: 100%; max-width: 100%;">` : ''}</div>
+        </div>
+        
+        <div class="a4-address-window">
+          <div class="a4-sender-address-small">${sender.name || 'Absender'}, ${sender.street || 'Straße'}, ${sender.zip || 'PLZ'} ${sender.city || 'Ort'}</div>
+          <div class="a4-address-text">${row.debtor_name || 'Max Mustermann'}\n${row.debtor_street || 'Musterstraße 1'}\n${row.debtor_zip || '12345'} ${row.debtor_city || 'Musterstadt'}</div>
+        </div>
+        
+        <div class="a4-info-block">
+          <div><strong>Datum:</strong> ${today}</div>
+        </div>
+        
+        <div class="a4-content">
+          <div class="a4-subject">Zahlungsaufforderung / Mahnung</div>
+          <div class="a4-body-text">${draftText.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</div>
+          <div class="a4-signature">
+            ${sender.signature ? `<img src="${sender.signature}" alt="Unterschrift" style="max-width: 150px; max-height: 60px; object-fit: contain; margin-bottom: 5px;">` : ''}
+          </div>
+        </div>
+        
+        <div class="a4-footer">
+          <div class="a4-footer-col">
+            <strong>${sender.name || 'Firma'}</strong><br>
+            ${sender.street || 'Straße'}<br>
+            ${sender.zip || 'PLZ'} ${sender.city || 'Ort'}
+          </div>
+          <div class="a4-footer-col">
+            <strong>Kontakt</strong><br>
+            ${sender.email || 'email@example.com'}<br>
+            ${sender.website || 'www.example.com'}
+          </div>
+          <div class="a4-footer-col">
+            <strong>Bankverbindung</strong><br>
+            ${sender.bank || 'Bank'}<br>
+            IBAN: ${sender.iban || 'DE00...'}<br>
+            BIC: ${sender.bic || 'XXX'}
+          </div>
+          <div class="a4-footer-col">
+            <strong>Register</strong><br>
+            ${sender.hrb || 'HRB XXX'}<br>
+            Geschäftsführer: ${sender.ceo || 'Max Muster'}
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  function updateLivePreview() {
+    if (currentMode === 'batch') return;
+
+    const payload = {
+      debtor_name:              document.getElementById('debtor_name').value.trim() || 'Max Mustermann',
+      creditor_name:            document.getElementById('creditor_name').value.trim() || 'Musterfirma GmbH',
+      amount:                   document.getElementById('amount').value.trim() || '2.400 €',
+      invoice_date:             document.getElementById('invoice_date').value.trim() || '12.02.2025',
+      due_date:                 document.getElementById('due_date').value.trim() || '26.02.2025',
+      prior_reminder_sent:      document.getElementById('prior_reminder_sent').checked,
+      add_final_deadline:       document.getElementById('add_final_deadline').checked,
+      deadline_date:            document.getElementById('deadline_date').value.trim() || '15.03.2025',
+      mention_default_interest: document.getElementById('mention_default_interest').checked,
+      mention_legal_action:     document.getElementById('mention_legal_action').checked,
+    };
+
+    const templates = getActiveTemplates();
+    let draftParts = [];
+
+    if (templates.intro) draftParts.push(replaceTemplateTags(templates.intro, payload));
+    if (payload.prior_reminder_sent && templates.reminder) draftParts.push(replaceTemplateTags(templates.reminder, payload));
+    if (templates.body) draftParts.push(replaceTemplateTags(templates.body, payload));
+    if (payload.mention_default_interest && templates.fees) draftParts.push(replaceTemplateTags(templates.fees, payload));
+    if (payload.add_final_deadline && templates.deadline) draftParts.push(replaceTemplateTags(templates.deadline, payload));
+    if (payload.mention_legal_action && templates.legal) draftParts.push(replaceTemplateTags(templates.legal, payload));
+    if (templates.closing) draftParts.push(replaceTemplateTags(templates.closing, payload));
+
+    const draftText = draftParts.join('\n\n');
+    const sender = JSON.parse(localStorage.getItem('lexSender') || 'null') || defaultSender;
+    
+    document.getElementById('livePreviewContainer').innerHTML = `<div class="a4-container">${renderA4HTML(draftText, payload, sender)}</div>`;
+    document.getElementById('batchCountBadge').textContent = `(Live)`;
+    document.getElementById('placeholder').style.display = 'none';
+    document.getElementById('result').classList.add('visible');
+  }
+
+  async function exportPDF() {
+    if (currentMode === 'batch') {
+      const elements = document.querySelectorAll('#draftContainer .a4-pdf-root');
+      if (elements.length === 0) {
+        showToast('Keine Batch-Dokumente verfügbar.');
+        return;
+      }
+
+      const btn = document.querySelector('.btn-print');
+      const originalText = btn.textContent;
+      btn.textContent = 'ZIP wird erstellt...';
+      btn.disabled = true;
+
+      try {
+        const zip = new JSZip();
+        
+        for (let i = 0; i < elements.length; i++) {
+          const el = elements[i];
+          // Determine the filename using the corresponding debtor name if possible, or just index
+          const debtorNameSpan = el.closest('.draft-card').querySelector('.draft-card-header span');
+          let safeName = debtorNameSpan ? debtorNameSpan.innerText.replace('An: ', '').replace(/[^a-z0-9]/gi, '_') : `Kunde_${i+1}`;
+          
+          btn.textContent = `Erstelle PDF ${i + 1}/${elements.length}...`;
+          
+          const opt = {
+            margin:       0,
+            image:        { type: 'jpeg', quality: 0.98 },
+            html2canvas:  { scale: 2, useCORS: true },
+            jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+          };
+          
+          const originalScale = el.style.transform;
+          el.style.transform = 'none'; // Ensure 1:1 scale for exact print rendering
+          
+          const pdfBlob = await html2pdf().set(opt).from(el).toPdf().get('pdf').then(function(pdf) {
+            return pdf.output('blob');
+          });
+          
+          el.style.transform = originalScale;
+          
+          zip.file(`Mahnschreiben_${safeName}.pdf`, pdfBlob);
+        }
+
+        btn.textContent = 'Speichere ZIP...';
+        const zipBlob = await zip.generateAsync({ type: 'blob' });
+        saveAs(zipBlob, 'Mahnschreiben_Batch.zip');
+        
+        showToast('ZIP erfolgreich generiert.', 'success');
+      } catch (err) {
+        console.error(err);
+        showToast('Fehler bei der PDF Generierung.');
+      } finally {
+        btn.textContent = originalText;
+        btn.disabled = false;
+      }
+
+    } else {
+      // Single Live Preview Export
+      const element = document.querySelector('#livePreviewContainer .a4-pdf-root');
+      if (!element) {
+        showToast('Keine Live-Vorschau verfügbar.');
+        return;
+      }
+      
+      const btn = document.querySelector('.btn-print');
+      const originalText = btn.textContent;
+      btn.textContent = 'Wird generiert...';
+      btn.disabled = true;
+
+      const opt = {
+        margin:       0,
+        filename:     'Mahnschreiben.pdf',
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 2, useCORS: true },
+        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      };
+
+      const originalScale = element.style.transform;
+      element.style.transform = 'none';
+      
+      html2pdf().set(opt).from(element).save().then(() => {
+        element.style.transform = originalScale;
+        btn.textContent = originalText;
+        btn.disabled = false;
+        showToast('PDF erfolgreich generiert.', 'success');
+      }).catch((e) => {
+        console.error(e);
+        element.style.transform = originalScale;
+        btn.textContent = originalText;
+        btn.disabled = false;
+        showToast('Fehler beim Export.', 'error');
+      });
+    }
+  }
+
   async function generateLetter() {
     const btn = document.getElementById('generateBtn');
 
-    let payloadArray = [];
-
-    if (currentMode === 'single') {
-      const payload = {
-        debtor_name:              document.getElementById('debtor_name').value.trim(),
-        creditor_name:            document.getElementById('creditor_name').value.trim(),
-        amount:                   document.getElementById('amount').value.trim(),
-        invoice_date:             document.getElementById('invoice_date').value.trim(),
-        due_date:                 document.getElementById('due_date').value.trim(),
-        prior_reminder_sent:      document.getElementById('prior_reminder_sent').checked,
-        add_final_deadline:       document.getElementById('add_final_deadline').checked,
-        deadline_date:            document.getElementById('deadline_date').value.trim(),
-        mention_default_interest: document.getElementById('mention_default_interest').checked,
-        mention_legal_action:     document.getElementById('mention_legal_action').checked,
-      };
-
-      if (!payload.debtor_name || !payload.creditor_name || !payload.amount) {
-        showToast('Bitte alle Pflichtfelder ausfüllen.');
-        return;
-      }
-      payloadArray.push(payload);
-    } else {
-      if (!uploadedCSVData || !uploadedCSVData.length) {
-        showToast('Bitte eine CSV Datei auswählen.');
-        return;
-      }
-
-      // Collect mapped fields
-      const mapping = {};
-      document.querySelectorAll('.mapping-select').forEach(select => {
-        mapping[select.getAttribute('data-field')] = select.value;
-      });
-
-      payloadArray = uploadedCSVData.map(row => {
-        const mappedRow = {};
-        for (const targetField in mapping) {
-          const csvHeader = mapping[targetField];
-          if (csvHeader && row[csvHeader] !== undefined) {
-            if (['prior_reminder_sent', 'add_final_deadline', 'mention_default_interest', 'mention_legal_action'].includes(targetField)) {
-              mappedRow[targetField] = parseBool(row[csvHeader]);
-            } else {
-              mappedRow[targetField] = row[csvHeader];
-            }
-          } else {
-            mappedRow[targetField] = '';
-          }
-        }
-        return mappedRow;
-      });
+    if (!uploadedCSVData || !uploadedCSVData.length) {
+      showToast('Bitte eine CSV Datei auswählen.');
+      return;
     }
+
+    // Collect mapped fields
+    const mapping = {};
+    document.querySelectorAll('.mapping-select').forEach(select => {
+      mapping[select.getAttribute('data-field')] = select.value;
+    });
+
+    let payloadArray = uploadedCSVData.map(row => {
+      const mappedRow = {};
+      for (const targetField in mapping) {
+        const csvHeader = mapping[targetField];
+        if (csvHeader && row[csvHeader] !== undefined) {
+          if (['prior_reminder_sent', 'add_final_deadline', 'mention_default_interest', 'mention_legal_action'].includes(targetField)) {
+            mappedRow[targetField] = parseBool(row[csvHeader]);
+          } else {
+            mappedRow[targetField] = row[csvHeader];
+          }
+        } else {
+          mappedRow[targetField] = '';
+        }
+      }
+      return mappedRow;
+    });
 
     btn.disabled = true;
     btn.classList.add('loading');
 
     try {
       const templates = getActiveTemplates();
+      const sender = JSON.parse(localStorage.getItem('lexSender') || 'null') || defaultSender;
       const results = [];
 
       for (const row of payloadArray) {
         let draftParts = [];
         let blocks = 0;
 
-        // 1. Intro
-        if (templates.intro) {
-          draftParts.push(replaceTemplateTags(templates.intro, row));
-          blocks++;
-        }
-
-        // 2. Reminder context (if checked)
-        if (row.prior_reminder_sent && templates.reminder) {
-          draftParts.push(replaceTemplateTags(templates.reminder, row));
-          blocks++;
-        }
-
-        // 3. Main body
-        if (templates.body) {
-          draftParts.push(replaceTemplateTags(templates.body, row));
-          blocks++;
-        }
-
-        // 4. Default Interest (if checked)
-        if (row.mention_default_interest && templates.fees) {
-          draftParts.push(replaceTemplateTags(templates.fees, row));
-          blocks++;
-        }
-
-        // 5. Final Deadline (if checked)
-        if (row.add_final_deadline && templates.deadline) {
-          draftParts.push(replaceTemplateTags(templates.deadline, row));
-          blocks++;
-        }
-
-        // 6. Legal Action (if checked)
-        if (row.mention_legal_action && templates.legal) {
-          draftParts.push(replaceTemplateTags(templates.legal, row));
-          blocks++;
-        }
-
-        // 7. Closing
-        if (templates.closing) {
-          draftParts.push(replaceTemplateTags(templates.closing, row));
-          blocks++;
-        }
+        if (templates.intro) { draftParts.push(replaceTemplateTags(templates.intro, row)); blocks++; }
+        if (row.prior_reminder_sent && templates.reminder) { draftParts.push(replaceTemplateTags(templates.reminder, row)); blocks++; }
+        if (templates.body) { draftParts.push(replaceTemplateTags(templates.body, row)); blocks++; }
+        if (row.mention_default_interest && templates.fees) { draftParts.push(replaceTemplateTags(templates.fees, row)); blocks++; }
+        if (row.add_final_deadline && templates.deadline) { draftParts.push(replaceTemplateTags(templates.deadline, row)); blocks++; }
+        if (row.mention_legal_action && templates.legal) { draftParts.push(replaceTemplateTags(templates.legal, row)); blocks++; }
+        if (templates.closing) { draftParts.push(replaceTemplateTags(templates.closing, row)); blocks++; }
 
         const draftText = draftParts.join('\n\n');
         
         results.push({
           debtor_name: row.debtor_name,
           draft: draftText,
-          blocks_included: blocks
+          blocks_included: blocks,
+          payload: row
         });
       }
       
@@ -1042,8 +1566,15 @@
             <span>An: ${name}</span>
             <span>Bausteine: ${blocks}</span>
           </div>
-          <div class="draft-card-body" contenteditable="true">${draftText.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</div>
         `;
+        
+        const cardBody = document.createElement('div');
+        cardBody.className = 'draft-card-body';
+        cardBody.style.padding = '0';
+        cardBody.style.background = 'var(--border)';
+        cardBody.innerHTML = `<div class="a4-container" style="margin-bottom:0; box-shadow:none;">${renderA4HTML(draftText, item.payload, sender)}</div>`;
+        
+        card.appendChild(cardBody);
         container.appendChild(card);
       });
 
@@ -1053,6 +1584,7 @@
 
     } catch (err) {
       showToast('Fehler bei der Generierung.');
+
       console.error(err);
     } finally {
       btn.disabled = false;
@@ -1087,18 +1619,43 @@
     });
   }
 
-  function showToast(msg) {
+  function showToast(msg, type = 'error') {
     const t = document.getElementById('toast');
     t.textContent = msg;
+    t.classList.remove('success');
+    if (type === 'success') {
+      t.classList.add('success');
+    }
     t.classList.add('show');
-    setTimeout(() => t.classList.remove('show'), 3500);
+    setTimeout(() => {
+      t.classList.remove('show');
+    }, 3500);
   }
 
   // Setup drag & drop and initial state
   document.addEventListener('DOMContentLoaded', () => {
     loadTemplates();
 
-    const dropZone = document.getElementById('drop-zone');
+    // Batch CSV Drag & Drop
+    setUpDropZone('drop-zone', 'csvFile', (files) => handleFileSelect(files));
+
+    // Media Drag & Drop
+    setUpDropZone('logo-drop-zone', 'logoFile', (files) => {
+      document.getElementById('logoFile').files = files;
+      handleImageUpload(document.getElementById('logoFile'), 'logoImagePreview', 'logoData', 'logoRemoveBtn');
+    });
+    
+    setUpDropZone('sig-drop-zone', 'sigFile', (files) => {
+      document.getElementById('sigFile').files = files;
+      handleImageUpload(document.getElementById('sigFile'), 'sigImagePreview', 'sigData', 'sigRemoveBtn');
+    });
+
+  });
+
+  function setUpDropZone(zoneId, inputId, onDropCallback) {
+    const dropZone = document.getElementById(zoneId);
+    if (!dropZone) return;
+    
     dropZone.addEventListener('dragover', (e) => {
       e.preventDefault();
       dropZone.classList.add('dragover');
@@ -1110,11 +1667,10 @@
       e.preventDefault();
       dropZone.classList.remove('dragover');
       if (e.dataTransfer.files.length) {
-        document.getElementById('csvFile').files = e.dataTransfer.files;
-        handleFileSelect(e.dataTransfer.files);
+        onDropCallback(e.dataTransfer.files);
       }
     });
-  });
+  }
 </script>
 </body>
 </html>
