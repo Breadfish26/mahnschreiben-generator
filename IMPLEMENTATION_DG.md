@@ -11,10 +11,10 @@ The target template (Abmahnung) is significantly more complex than a standard du
 
 ---
 
-## Phase 1: Data Model & Calculation Engine
+## Phase 1: Data Model & Calculation Engine [DONE]
 Current placeholders like `{{amount}}` are insufficient. We need a specialized legal data model.
 
-### 1.1 Extended Placeholder Dictionary
+### 1.1 Extended Placeholder Dictionary [DONE]
 | Category | Placeholder | Description |
 | :--- | :--- | :--- |
 | **Case Meta** | `{{AKTE_ZEICHEN}}` | Internal file reference number (e.g., 2024-1234). |
@@ -27,7 +27,7 @@ Current placeholders like `{{amount}}` are insufficient. We need a specialized l
 | **Financials** | `{{GEGNER_WERT}}` | Amount in dispute (Gegenstandswert). |
 | | `{{GEGNER_SCHADEN}}` | License damages (Umsatz-Lizenzschaden). |
 
-### 1.2 RVG Calculation Logic
+### 1.2 RVG Calculation Logic [DONE]
 Implement a utility function to calculate legal fees according to the RVG (Section 13 RVG + No. 2300 VV RVG):
 - Input: `Gegenstandswert`.
 - Output: `Geschäftsgebühr` (usually 1.3 factor), `Post- und Telekommunikation` (20€ cap), and `Gesamtbetrag`.

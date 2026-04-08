@@ -718,12 +718,15 @@
         Klicken Sie auf einen Platzhalter, um ihn an der aktuellen Stelle in Ihrem Text einzufügen:
       </p>
       <div class="chip-group">
-        <button type="button" class="chip-btn" onclick="insertVariable('{{creditor_name}}', 'Gläubiger')" title="Gläubiger einfügen">+ Gläubiger</button>
-        <button type="button" class="chip-btn" onclick="insertVariable('{{debtor_name}}', 'Schuldner')" title="Schuldner einfügen">+ Schuldner</button>
-        <button type="button" class="chip-btn" onclick="insertVariable('{{aktenzeichen}}', 'Aktenzeichen')" title="Aktenzeichen einfügen">+ Aktenzeichen</button>
-        <button type="button" class="chip-btn" onclick="insertVariable('{{amount}}', 'Betrag')" title="Betrag einfügen">+ Betrag</button>
-        <button type="button" class="chip-btn" onclick="insertVariable('{{invoice_date}}', 'Rechnungsdatum')" title="Rechnungsdatum einfügen">+ Rechnungsdatum</button>
-        <button type="button" class="chip-btn" onclick="insertVariable('{{due_date}}', 'Fälligkeit')" title="Fälligkeit einfügen">+ Fälligkeit</button>
+        <button type="button" class="chip-btn" onclick="insertVariable('{{AKTE_ZEICHEN}}', 'Aktenzeichen')" title="Aktenzeichen einfügen">+ Aktenzeichen</button>
+        <button type="button" class="chip-btn" onclick="insertVariable('{{AKTE_KURZRUBRUM}}', 'Rubrum')" title="Kurzrubrum einfügen">+ Rubrum</button>
+        <button type="button" class="chip-btn" onclick="insertVariable('{{GEGNER_NAME}}', 'Schuldner')" title="Schuldner einfügen">+ Schuldner</button>
+        <button type="button" class="chip-btn" onclick="insertVariable('{{GEGNER_AKTE_ZEICHEN}}', 'Ihr Zeichen')" title="Gegner Zeichen einfügen">+ Ihr Zeichen</button>
+        <button type="button" class="chip-btn" onclick="insertVariable('{{GEGNER_AKTE_EIGENE1}}', 'URL 1')" title="Fundstelle URL einfügen">+ URL 1</button>
+        <button type="button" class="chip-btn" onclick="insertVariable('{{FALL_GEGENSTANDSWERT}}', 'Gegenstandswert')" title="Streitwert">+ Streitwert</button>
+        <button type="button" class="chip-btn" onclick="insertVariable('{{FALL_SCHADENSERSATZ}}', 'Schadensersatz')" title="Lizenzschaden">+ Schadensersatz</button>
+        <button type="button" class="chip-btn" onclick="insertVariable('{{FALL_ANWALTSKOSTEN}}', 'Anwaltskosten')" title="RVG Kosten">+ Anwaltskosten</button>
+        <button type="button" class="chip-btn" onclick="insertVariable('{{SUMME_GESAMT}}', 'Summe Gesamt')" title="Gesamtbetrag">+ Summe</button>
         <button type="button" class="chip-btn" onclick="insertVariable('{{deadline_date}}', 'Fristdatum')" title="Fristdatum einfügen">+ Fristdatum</button>
       </div>
     </div>
@@ -893,11 +896,49 @@
           <input type="text" id="debtor_city" placeholder="Musterstadt" value="">
         </div>
       </div>
-      <div class="form-group">
-        <label>Aktenzeichen (optional)</label>
-        <input type="text" id="aktenzeichen" placeholder="z.B. AZ-2026-0001">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Aktenzeichen (eigenes)</label>
+          <input type="text" id="aktenzeichen" placeholder="z.B. 2026-0001">
+        </div>
+        <div class="form-group">
+          <label>Akten-Kurzrubrum</label>
+          <input type="text" id="akte_kurzrubrum" placeholder="Grosche vs. Mustermann">
+        </div>
       </div>
     </div>
+
+  <div class="form-section">
+    <div class="section-label">Rechtlicher Fall (Gegner & Fundstelle)</div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Anrede Gegner (Titel + Vorname)</label>
+        <input type="text" id="debtor_titel" placeholder="Herr Max">
+      </div>
+      <div class="form-group">
+        <label>Gegner Akt-Zeichen (Ihr Zeichen)</label>
+        <input type="text" id="gegner_akte_zeichen" placeholder="z.B. 44/26">
+      </div>
+    </div>
+    <div class="form-group">
+      <label>URL / Fundstelle 1 (Evidence)</label>
+      <input type="text" id="gegner_url1" placeholder="https://www.infringer-site.com/photo123">
+    </div>
+    <div class="form-group">
+      <label>URL / Fundstelle 2 (Optional)</label>
+      <input type="text" id="gegner_url2" placeholder="z.B. Profil-Link">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Gegenstandswert (Streitwert)</label>
+        <input type="text" id="gegenstandswert" placeholder="12.000 €" value="12000 €">
+      </div>
+      <div class="form-group">
+        <label>Schadensersatz (Lizenzschaden)</label>
+        <input type="text" id="schadensersatz" placeholder="2.000 €" value="2000 €">
+      </div>
+    </div>
+  </div>
 
   <div class="form-section">
     <div class="section-label">Forderung</div>
@@ -1046,12 +1087,19 @@
 
   const EXPECTED_FIELDS = [
     { key: 'aktenzeichen', label: 'Aktenzeichen' },
+    { key: 'akte_kurzrubrum', label: 'Akten-Kurzrubrum' },
     { key: 'creditor_name', label: 'Gläubiger (Pflicht)' },
     { key: 'debtor_vorname', label: 'Schuldner Vorname' },
     { key: 'debtor_name', label: 'Schuldner Nachname (Pflicht)' },
+    { key: 'debtor_titel', label: 'Schuldner Titel' },
     { key: 'debtor_street', label: 'Schuldner Straße' },
     { key: 'debtor_zip', label: 'Schuldner PLZ' },
     { key: 'debtor_city', label: 'Schuldner Ort' },
+    { key: 'gegner_akte_zeichen', label: 'Gegner Akt-Zeichen' },
+    { key: 'gegner_url1', label: 'Fundstelle / URL 1' },
+    { key: 'gegner_url2', label: 'Fundstelle / URL 2' },
+    { key: 'gegenstandswert', label: 'Gegenstandswert' },
+    { key: 'schadensersatz', label: 'Schadensersatz' },
     { key: 'full_name', label: 'Vollständiger Name (Fallback)' },
     { key: 'amount', label: 'Betrag (Pflicht)' },
     { key: 'invoice_date', label: 'Rechnungsdatum (Pflicht)' },
@@ -1074,15 +1122,24 @@
   };
 
   const VAR_MAP = {
-    '{{aktenzeichen}}': 'Aktenzeichen',
     '{{AKTE_ZEICHEN}}': 'Aktenzeichen',
-    '{{creditor_name}}': 'Gläubiger',
-    '{{debtor_name}}': 'Schuldner Nachname',
-    '{{GEGNER_NAME}}': 'Schuldner Nachname',
-    '{{GEGNER_VORNAME}}': 'Schuldner Vorname',
-    '{{GEGNER_STRASSE}}': 'Schuldner Straße',
-    '{{GEGNER_PLZ}}': 'Schuldner PLZ',
-    '{{GEGNER_ORT}}': 'Schuldner Ort',
+    '{{AKTE_KURZRUBRUM}}': 'Kurzrubrum',
+    '{{KURZDATUM}}': 'Aktuelles Datum',
+    '{{GEGNER_TITEL}}': 'Gegner Titel',
+    '{{GEGNER_NAME}}': 'Gegner Name',
+    '{{GEGNER_VORNAME}}': 'Gegner Vorname',
+    '{{GEGNER_STRASSE}}': 'Gegner Straße',
+    '{{GEGNER_PLZ}}': 'Gegner PLZ',
+    '{{GEGNER_ORT}}': 'Gegner Ort',
+    '{{GEGNER_AKTE_ZEICHEN}}': 'Gegner Zeichen',
+    '{{GEGNER_AKTE_EIGENE1}}': 'URL 1',
+    '{{GEGNER_AKTE_EIGENE2}}': 'URL 2',
+    '{{FALL_GEGENSTANDSWERT}}': 'Gegenstandswert',
+    '{{FALL_SCHADENSERSATZ}}': 'Schadensersatz',
+    '{{FALL_ANWALTSKOSTEN}}': 'Anwaltskosten',
+    '{{SUMME_GESAMT}}': 'Summe Gesamt',
+    '{{GA_TABELLE}}': 'Kosten-Tabelle',
+    '{{aktenzeichen}}': 'Aktenzeichen (Legacy)',
     '{{amount}}': 'Betrag',
     '{{invoice_date}}': 'Rechnungsdatum',
     '{{due_date}}': 'Fälligkeitsdatum',
@@ -1277,14 +1334,20 @@
     return false;
   }
   const COLUMN_ALIASES = {
-    aktenzeichen: ['aktenzeichen', 'akte', 'az', 'referenz', 'vorgangsnummer', 'fallnummer', 'reference', 'case_id'],
+    aktenzeichen: ['aktenzeichen', 'akte', 'az', 'referenz', 'vorgangsnummer', 'fallnummer', 'reference', 'case_id', 'akte_zeichen'],
+    akte_kurzrubrum: ['akte_kurzrubrum', 'kurzrubrum', 'fall', 'betreff_kurz', 'rubrum'],
     debtor_name: ['debtor_name', 'schuldner', 'kunde', 'name', 'nachname', 'lastname', 'debtor', 'empfänger', 'firmenname', 'mandant', 'gegner_name'],
     debtor_vorname: ['vorname', 'firstname', 'schuldner_vorname', 'gegner_vorname'],
+    debtor_titel: ['titel', 'ansprache', 'gegnertitel', 'gegner_titel'],
     debtor_street: ['strasse', 'street', 'address', 'anschrift', 'adresse', 'schuldner_strasse', 'gegner_strasse'],
     debtor_zip: ['plz', 'zipcode', 'zip', 'postleitzahl', 'schuldner_plz', 'gegner_plz'],
     debtor_city: ['ort', 'city', 'stadt', 'schuldner_ort', 'gegner_ort'],
+    gegner_akte_zeichen: ['gegner_akte_zeichen', 'ihr zeichen', 'ihr_zeichen', 'gegner_zeichen'],
+    gegner_url1: ['url1', 'fundstelle1', 'link1', 'quelle1', 'gegner_akte_eigene1'],
+    gegner_url2: ['url2', 'fundstelle2', 'link2', 'quelle2', 'gegner_akte_eigene2'],
+    gegenstandswert: ['gegenstandswert', 'wert', 'streitwert', 'fall_gegenstandswert'],
+    schadensersatz: ['schadensersatz', 'schaden', 'lizenzschaden', 'fall_schadensersatz'],
     full_name: ['full_name', 'vollständiger name', 'name vorname', 'vorname name', 'schuldner_vollname'],
-    creditor_name: ['creditor_name', 'gläubiger', 'glaeubiger', 'creditor', 'auftraggeber', 'ihr mandant', 'mandant'],
     amount: ['amount', 'betrag', 'summe', 'rechnungssumme', 'offener betrag', 'wert', 'forderung', 'forderung_eur', 'forderungeur'],
     invoice_date: ['invoice_date', 'rechnungsdatum', 'datum', 'invoice date', 'belegdatum', 'rechnung_vom', 'rechnungvom'],
     due_date: ['due_date', 'fälligkeitsdatum', 'faelligkeitsdatum', 'fällig am', 'faellig_bis', 'faelligbis', 'due date', 'fällig'],
@@ -1359,20 +1422,77 @@
     document.getElementById('mapping-section').style.display = 'block';
   }
 
+  function calculateRVG(wert) {
+    const w = parseFloat(String(wert).replace(/[^0-9.,]/g, '').replace(',', '.')) || 0;
+    
+    // Simplified RVG Table (linear approximation or key steps for demonstration)
+    // In a real app, this would be a full table or complex formula
+    function getBasicFee(amount) {
+      if (amount <= 500) return 49;
+      if (amount <= 1000) return 88;
+      if (amount <= 1500) return 127;
+      if (amount <= 2000) return 166;
+      if (amount <= 3000) return 222;
+      if (amount <= 4000) return 278;
+      if (amount <= 5000) return 334;
+      if (amount <= 6000) return 390;
+      if (amount <= 7000) return 446;
+      if (amount <= 8000) return 502;
+      if (amount <= 9000) return 558;
+      if (amount <= 10000) return 614;
+      if (amount <= 13000) return 684;
+      if (amount <= 16000) return 754;
+      if (amount <= 19000) return 824;
+      if (amount <= 22000) return 894;
+      if (amount <= 25000) return 964;
+      return 964 + (Math.ceil((amount - 25000) / 5000) * 110); // Rough approximation for higher amounts
+    }
+
+    const basicFee = getBasicFee(w);
+    const businessFee = basicFee * 1.3;
+    const expenses = Math.min(businessFee * 0.2, 20.0);
+    const total = businessFee + expenses;
+
+    return {
+      gegenstandswert: w.toLocaleString('de-DE', { minimumFractionDigits: 2 }) + ' €',
+      geschäftsgebühr: businessFee.toLocaleString('de-DE', { minimumFractionDigits: 2 }) + ' €',
+      auslagen: expenses.toLocaleString('de-DE', { minimumFractionDigits: 2 }) + ' €',
+      gesamt: total.toLocaleString('de-DE', { minimumFractionDigits: 2 }) + ' €'
+    };
+  }
+
   function replaceTemplateTags(template, row) {
     if (!template) return '';
     let text = template;
     
+    const rvg = calculateRVG(row.gegenstandswert || 0);
+
     // Supported tag mappings (Backward compatibility + Client-agnostic system)
     const tagMapping = {
       'aktenzeichen': 'aktenzeichen',
       'AKTE_ZEICHEN': 'aktenzeichen',
+      'AKTE_KURZRUBRUM': 'akte_kurzrubrum',
+      'KURZDATUM': () => new Date().toLocaleDateString('de-DE'),
+      'GEGNER_TITEL': 'debtor_titel',
       'debtor_name': 'debtor_name',
       'GEGNER_NAME': 'debtor_name',
       'GEGNER_VORNAME': 'debtor_vorname',
       'GEGNER_STRASSE': 'debtor_street',
       'GEGNER_PLZ': 'debtor_zip',
       'GEGNER_ORT': 'debtor_city',
+      'GEGNER_AKTE_ZEICHEN': 'gegner_akte_zeichen',
+      'GEGNER_AKTE_EIGENE1': 'gegner_url1',
+      'GEGNER_AKTE_EIGENE2': 'gegner_url2',
+      'FALL_GEGENSTANDSWERT': () => rvg.gegenstandswert,
+      'FALL_SCHADENSERSATZ': 'schadensersatz',
+      'FALL_ANWALTSKOSTEN': () => rvg.gesamt,
+      'FALL_FEE_13': () => rvg.geschäftsgebühr,
+      'FALL_EXPENSES': () => rvg.auslagen,
+      'SUMME_GESAMT': () => {
+        const schaden = parseFloat(String(row.schadensersatz || 0).replace(/[^0-9.,]/g, '').replace(',', '.')) || 0;
+        const fees = parseFloat(rvg.gesamt.replace(/[^0-9.,]/g, '').replace(',', '.')) || 0;
+        return (schaden + fees).toLocaleString('de-DE', { minimumFractionDigits: 2 }) + ' €';
+      },
       'creditor_name': 'creditor_name',
       'amount': 'amount',
       'invoice_date': 'invoice_date',
@@ -1383,7 +1503,12 @@
     // Replace all tags
     for (const [tag, internalKey] of Object.entries(tagMapping)) {
       const regex = new RegExp(`{{${tag}}}`, 'gi');
-      const val = row[internalKey] || row[tag] || '';
+      let val = '';
+      if (typeof internalKey === 'function') {
+        val = internalKey();
+      } else {
+        val = row[internalKey] || row[tag] || '';
+      }
       text = text.replace(regex, val);
     }
 
@@ -1515,12 +1640,19 @@
     const payload = {
       debtor_name:              document.getElementById('debtor_name').value.trim() || 'Mustermann',
       debtor_vorname:           document.getElementById('debtor_vorname').value.trim(),
+      debtor_titel:             document.getElementById('debtor_titel').value.trim() || 'Herr/Frau',
       debtor_street:            document.getElementById('debtor_street').value.trim() || 'Musterstraße 1',
       debtor_zip:               document.getElementById('debtor_zip').value.trim() || '12345',
       debtor_city:              document.getElementById('debtor_city').value.trim() || 'Musterstadt',
       creditor_name:            document.getElementById('creditor_name').value.trim() || 'Musterfirma GmbH',
       aktenzeichen:             document.getElementById('aktenzeichen').value.trim(),
-      amount:                   document.getElementById('amount').value.trim() || '2.400 €',
+      akte_kurzrubrum:          document.getElementById('akte_kurzrubrum').value.trim() || 'Ihre Angelegenheit',
+      gegner_akte_zeichen:      document.getElementById('gegner_akte_zeichen').value.trim() || '-',
+      gegner_url1:              document.getElementById('gegner_url1').value.trim(),
+      gegner_url2:              document.getElementById('gegner_url2').value.trim(),
+      gegenstandswert:          document.getElementById('gegenstandswert').value.trim() || '0 €',
+      schadensersatz:           document.getElementById('schadensersatz').value.trim() || '0 €',
+      amount:                   document.getElementById('amount').value.trim() || '0 €',
       invoice_date:             document.getElementById('invoice_date').value.trim() || '12.02.2025',
       due_date:                 document.getElementById('due_date').value.trim() || '26.02.2025',
       prior_reminder_sent:      document.getElementById('prior_reminder_sent').checked,
