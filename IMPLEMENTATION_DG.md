@@ -34,15 +34,15 @@ Implement a utility function to calculate legal fees according to the RVG (Secti
 
 ---
 
-## Phase 2: User Interface Extensions
+## Phase 2: UI & Component Revamp [DONE]
 The UI must shift from "Invoice Data" to "Case Data".
 
-### 2.1 The "Case Setup" Panel
+### 2.1 The "Case Setup" Panel [DONE]
 - **Infringement Details**: Inputs for URLs, description of the artistic work (e.g., Panorama photograph), and platform (LinkedIn, Website, etc.).
 - **Financial Breakdown**: Toggle for "Schadensersatz" calculation vs fixed amount.
 - **Opponent Structure**: Form group for Name, Address, and Titling (Sehr geehrter Herr/Frau...).
 
-### 2.2 Template Selection
+### 2.2 Template Selection [DONE]
 - Move from block-based assembly to **Template Selection** (e.g., "Gewerblich Infringement", "Private Infringement", "Follow-up Warning").
 
 ---

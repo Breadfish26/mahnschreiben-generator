@@ -867,6 +867,18 @@
 
   <div id="single-mode">
     <div class="form-section">
+      <div class="section-label">Fall-Konfiguration</div>
+      <div class="form-group">
+        <label>Vorlagen-Typ / Szenario</label>
+        <select id="case_type" class="mapping-select" onchange="applyCaseTemplate(this.value)" style="font-size: 14px; padding: 10px;">
+          <option value="standard">Standard Zahlungsaufforderung</option>
+          <option value="copyright_gewerblich" selected>Copyright-Abmahnung (Gewerblich)</option>
+          <option value="copyright_privat">Copyright-Abmahnung (Privat)</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="form-section">
       <div class="section-label">Parteien</div>
       <div class="form-group">
         <label>Gläubiger (Ihr Mandant)</label>
@@ -919,6 +931,21 @@
         <label>Gegner Akt-Zeichen (Ihr Zeichen)</label>
         <input type="text" id="gegner_akte_zeichen" placeholder="z.B. 44/26">
       </div>
+    </div>
+    <div class="form-group">
+      <label>Plattform / Medium</label>
+      <select id="gegner_platform" class="mapping-select">
+        <option value="Website">Eigene Website</option>
+        <option value="LinkedIn">LinkedIn</option>
+        <option value="Instagram">Instagram</option>
+        <option value="Facebook">Facebook</option>
+        <option value="Print">Print-Medium</option>
+        <option value="Sonstiges">Sonstiges</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Bezeichnung des Werkes (z.B. Foto "Panorama Frankfurt")</label>
+      <input type="text" id="gegner_werk" placeholder="z.B. Lichtbildwerk 'Panorama Frankfurt'">
     </div>
     <div class="form-group">
       <label>URL / Fundstelle 1 (Evidence)</label>
@@ -1555,6 +1582,49 @@
     localStorage.setItem('lexAzCounter', JSON.stringify(counterData));
   }
 
+  const cetiTemplates = {
+    copyright_gewerblich: {
+      intro: "Sehr geehrter {{GEGNER_TITEL}} {{GEGNER_NAME}},\n\nich zeige die Vertretung von {{creditor_name}} an. Das Vorliegen ordnungsgemäßer Vollmacht wird anwaltlich versichert.",
+      body: "Mein Mandant hat mich mit der Durchsetzung seiner Rechte beauftragt. Er hat festgestellt, dass Sie {{gegner_werk}} ohne seine Berechtigung und ohne Urheberbenennung auf der Plattform {{gegner_platform}} verwendet haben. \n\nDas gegenständliche Werk wurde unter folgendem Link gefunden: {{GEGNER_AKTE_EIGENE1}}\n\nDie festgestellte Nutzung ohne Lizenz ist als Vervielfältigung und öffentliche Zugänglichmachung rechtswidrig §§ 16, 19 a UrhG.",
+      fees: "Gemäß § 97 Abs. 2 UrhG schulden Sie meinem Mandanten Schadensersatz für die festgestellte Nutzung. Dieser beläuft sich nach den Grundsätzen der Lizenzanalogie auf insgesamt {{FALL_SCHADENSERSATZ}}. \n\nZudem sind Sie zur Erstattung der durch meine Inanspruchnahme entstandenen Anwaltskosten verpflichtet. Diese berechnen sich aus einem Gegenstandswert von {{FALL_GEGENSTANDSWERT}} wie folgt:\n\n1,3 Geschäftsgebühr: {{FALL_FEE_13}}\nAuslagenpauschale: {{FALL_EXPENSES}}\nGesamtbetrag Anwaltskosten: {{FALL_ANWALTSKOSTEN}}",
+      reminder: "Es handelt sich bei der vorgenommenen Handlung um eine geschäftliche Nutzung, die eine entsprechende Sorgfaltspflicht Ihrerseits voraussetzt.",
+      deadline: "Ich fordere Sie auf, den Gesamtbetrag von {{SUMME_GESAMT}} bis zum {{deadline_date}} auf das unten genannte Konto zu überweisen.",
+      legal: "Sollte diese Frist fruchtlos verstreichen, wird mein Mandant nicht zögern, seine Ansprüche gerichtlich durchzusetzen.",
+      closing: "Mit freundlichen Grüßen\n\nDaniel Grosche\nRechtsanwalt"
+    },
+    copyright_privat: {
+      intro: "Sehr geehrter {{GEGNER_TITEL}} {{GEGNER_NAME}},\n\nich schreibe Ihnen im Namen meines Mandanten {{creditor_name}}.",
+      body: "Wir mussten feststellen, dass Sie ein Bild meines Mandanten ({{gegner_werk}}) auf {{gegner_platform}} privat verwendet haben. Auch bei privater Nutzung ist eine Lizenz bzw. die Nennung des Urhebers erforderlich.",
+      fees: "Mein Mandant ist bereit, die Angelegenheit gütlich beizulegen, wenn Sie einen Betrag von {{SUMME_GESAMT}} (beinhaltend Schadensersatz und reduzierte Kostenpauschale) leisten.",
+      reminder: "Bislang wurde auf unsere Hinweise nicht reagiert.",
+      deadline: "Bitte überweisen Sie den Betrag bis zum {{deadline_date}}.",
+      legal: "Vermeiden Sie durch rechtzeitige Zahlung weitere Kosten eines Gerichtsverfahrens.",
+      closing: "Mit freundlichen Grüßen"
+    }
+  };
+
+  function applyCaseTemplate(type) {
+    if (type === 'standard') {
+      localStorage.setItem('lexTemplates', JSON.stringify(defaultTemplates));
+      loadTemplates();
+      showToast('Standard-Mahnvorlage geladen.');
+      return;
+    }
+    const tpl = cetiTemplates[type];
+    if (tpl) {
+      localStorage.setItem('lexTemplates', JSON.stringify(tpl));
+      loadTemplates();
+      showToast('CETI Fach-Vorlage geladen.', 'success');
+      
+      // Auto-set some defaults for CETI
+      if (type.startsWith('copyright')) {
+        document.getElementById('akte_kurzrubrum').value = "Urheberrechtsverletzung";
+        document.getElementById('gegenstandswert').value = "12000 €";
+        document.getElementById('schadensersatz').value = "2000 €";
+      }
+    }
+  }
+
   function renderA4HTML(draftText, row, sender) {
     const today = new Date().toLocaleDateString('de-DE');
     return `
@@ -1648,6 +1718,8 @@
       aktenzeichen:             document.getElementById('aktenzeichen').value.trim(),
       akte_kurzrubrum:          document.getElementById('akte_kurzrubrum').value.trim() || 'Ihre Angelegenheit',
       gegner_akte_zeichen:      document.getElementById('gegner_akte_zeichen').value.trim() || '-',
+      gegner_platform:          document.getElementById('gegner_platform').value,
+      gegner_werk:              document.getElementById('gegner_werk').value.trim() || 'das gegenständliche Werk',
       gegner_url1:              document.getElementById('gegner_url1').value.trim(),
       gegner_url2:              document.getElementById('gegner_url2').value.trim(),
       gegenstandswert:          document.getElementById('gegenstandswert').value.trim() || '0 €',
